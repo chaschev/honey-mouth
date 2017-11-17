@@ -1,4 +1,4 @@
-package honey.config.install.progress;
+package honey.install.progress;
 
 import jline.TerminalFactory;
 import java.io.PrintStream;

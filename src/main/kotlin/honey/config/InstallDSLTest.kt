@@ -10,13 +10,12 @@ import honey.config.example.ExampleConfig.dev
 import honey.config.example.ExampleConfig.prod
 import honey.config.example.ExampleConfig.staging
 import honey.config.example.HiveConfigs
+
 import java.util.*
 
 fun build(builder: InstallDSLBuilder<HiveConfigs>.() -> Unit):
   InstallDSLBuilder<HiveConfigs> =
   InstallDSLBuilder<HiveConfigs>().apply(builder).build()
-
-
 
 fun main(mainArgs: Array<String>) {
   val appName = "honey-badger"

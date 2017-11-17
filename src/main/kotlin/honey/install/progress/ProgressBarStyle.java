@@ -1,4 +1,4 @@
-package honey.config.install.progress;
+package honey.install.progress;
 
 /**
  * Represents the display style of a progress bar.
