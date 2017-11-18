@@ -1,8 +1,9 @@
 package honey.config
 
 import honey.config.dsl.Folder
-import honey.config.dsl.InstallDSLBuilder
+import honey.config.dsl.InstallDSLBuilder.Companion.build
 import honey.config.dsl.Rights
+import honey.config.dsl.Rights.UserRights.Companion.readOnly
 import honey.config.dsl.Rights.omit
 import honey.config.dsl.ScriptOption.jvmOpts
 import honey.config.dsl.ScriptOption.memory
@@ -10,12 +11,7 @@ import honey.config.example.ExampleConfig.dev
 import honey.config.example.ExampleConfig.prod
 import honey.config.example.ExampleConfig.staging
 import honey.config.example.HiveConfigs
-
 import java.util.*
-
-fun build(builder: InstallDSLBuilder<HiveConfigs>.() -> Unit):
-  InstallDSLBuilder<HiveConfigs> =
-  InstallDSLBuilder<HiveConfigs>().apply(builder).build()
 
 fun main(mainArgs: Array<String>) {
   val appName = "honey-badger"
@@ -24,7 +20,7 @@ fun main(mainArgs: Array<String>) {
   // In this script
   // And pack it into the installation
 
-  val struct = build {
+  val struct = build<HiveConfigs> {
     require {
       "java" version "^9.0"
       "javac" version "^9.0"
@@ -47,14 +43,15 @@ fun main(mainArgs: Array<String>) {
     }
 
     users {
-      "honey" in "badger"
-      "honey" in "honey"
+      "honey" inGroup "badger"
+      "honey" inGroup "honey"
     }
 
     rights {
       default = omit
 
-      add(Rights.UserRights.readOnly)
+      add(readOnly)
+      add(Rights.UserRights("normal", "a=rw"))
     }
 
     folders {
@@ -105,4 +102,6 @@ fun main(mainArgs: Array<String>) {
       // will make schema migrations, to match new app logic
     }
   }
+
+  println(struct.config)
 }

@@ -3,7 +3,7 @@ package honey.config.dsl
 import honey.config.AppConfig
 import honey.config.StoredConfig
 
-class InstallDSLBuilder<C: AppConfig> {
+class InstallDSLBuilder<C : AppConfig> {
   var requiredVersions: RequireDSLBuilder? = null
   private var before: (() -> Unit)? = null
   private var after: (() -> Unit)? = null
@@ -27,7 +27,9 @@ class InstallDSLBuilder<C: AppConfig> {
     before = block
   }
 
-  fun config(block: () -> StoredConfig<C>) {config = block()}
+  fun config(block: () -> StoredConfig<C>) {
+    config = block()
+  }
 
   fun require(builder: RequireDSLBuilder.() -> Unit) {
     requiredVersions = RequireDSLBuilder().apply(builder)
@@ -43,7 +45,14 @@ class InstallDSLBuilder<C: AppConfig> {
 
   fun users() = users!!
 
-  fun users(name: String) = users!![name]!!
+  fun users(name: String): User {
+    try {
+      return users!![name]!!
+    } catch (e: Exception) {
+      println("user not found: $name. Available users: ${users?.list}")
+      throw e
+    }
+  }
 
   fun users(builder: UsersDSLBuilder.() -> Unit) {
     this.users = UsersDSLBuilder().apply(builder).build()
@@ -86,5 +95,12 @@ class InstallDSLBuilder<C: AppConfig> {
       }
     }
   }
+
+  companion object {
+    fun <C : AppConfig> build(builder: InstallDSLBuilder<C>.() -> Unit):
+      InstallDSLBuilder<C> =
+      InstallDSLBuilder<C>().apply(builder).build()
+  }
 }
+
 

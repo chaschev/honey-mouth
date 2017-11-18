@@ -12,7 +12,11 @@ class InFoldersDSLBuilder(val parent: InstallDSLBuilder<*>) {
   }
 
   fun script(builder: ScriptDSLBuilder.() -> Unit): ScriptDSLBuilder {
-    return ScriptDSLBuilder().apply(builder).build()
+    val script = ScriptDSLBuilder().apply(builder).build()
+
+    list.add(script)
+
+    return script
   }
 
   data class Links(

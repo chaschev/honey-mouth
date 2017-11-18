@@ -4,7 +4,7 @@ class ScriptDSLBuilder : ObjectWithFolder<ScriptDSLBuilder> {
   override lateinit var folderPath: String
 
   lateinit var id: String
-  var name = id
+//  var name : String = id ?: null
   lateinit var appClass: String
 
   var args: String? = null

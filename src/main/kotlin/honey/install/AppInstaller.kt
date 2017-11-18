@@ -1,7 +1,12 @@
 package honey.install
 
-import honey.maven.DumbMavenRepo
+import honey.config.dsl.InstallDSLBuilder
+import honey.util.FileUtils
+import honey.util.extractResource
+import honey.util.mkdirsSafely
+import honey.util.readAppResource
 import java.io.File
+import javax.script.ScriptEngineManager
 
 
 /*
@@ -54,12 +59,29 @@ class AppInstaller {
     }
   }
 
+
+  val scriptEngineManager = ScriptEngineManager()
+  val kotlinEngine = scriptEngineManager.getEngineByExtension("kts")!!
+
   /**
    * At this stage we have all required JARs in our classpath.
    *
    * Run the release script.
    */
   fun install() {
+    FileUtils.mkdirsSafely("kt")
 
+    FileUtils.extractResource("/Config.kt", File("kt"), this)
+    FileUtils.extractResource("/install.kts", File("kt"), this)
+
+
+    val dsl = kotlinEngine.eval(File("kt/install.kts").reader()) as InstallDSLBuilder<*>
+
+    println(dsl.config)
   }
 }
+
+
+//    engineManager.engineFactories.forEach {
+//      println(it.engineName + " " + it.names)
+//    }
