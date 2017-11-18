@@ -2,12 +2,10 @@ package honey.install
 
 import honey.maven.DumbMavenRepo
 import java.io.File
-import java.io.FileOutputStream
-import java.net.URL
-import java.nio.channels.Channels
 
 
 /*
+
 User extends Installer Class
 
 java -jar my-ass.jar install --env staging
@@ -48,31 +46,20 @@ Don't need a tool like npm, there is Gradle. Though Gradle doesn't provide API f
 */
 
 
-class Installer {
+class AppInstaller {
   companion object {
     @JvmStatic
     fun main(args: Array<String>) {
-      Installer().install()
+      AppInstaller().install()
     }
   }
 
+  /**
+   * At this stage we have all required JARs in our classpath.
+   *
+   * Run the release script.
+   */
   fun install() {
-    val libDir = File("lib")
 
-    libDir.mkdir()
-
-    println("downloading runtime libraries...")
-
-//    downloadJavaWay("http://central.maven.org/maven2/jline/jline/2.14.5/jline-2.14.5.jar", File(""))
-
-    MavenArtifactResolver(listOf(
-      DumbMavenRepo("http://dl.bintray.com/kotlin/kotlin-eap-1.2"),
-      DumbMavenRepo("http://central.maven.org/maven2")
-    )).resolve(libDir,
-      "org.jetbrains.kotlin:kotlin-stdlib:1.2.0-rc-39",
-      "jline:jline:2.14.5"
-    )
   }
-
-
 }

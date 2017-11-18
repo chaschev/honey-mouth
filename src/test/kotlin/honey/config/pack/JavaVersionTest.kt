@@ -1,6 +1,5 @@
 package honey.config.pack
 
-import com.nhaarman.mockito_kotlin.mock
 import honey.pack.JavaVersion
 import honey.pack.Version
 import honey.pack.Version.Companion.MAX
@@ -12,20 +11,17 @@ import kotlin.test.assertEquals
 
 class JavaVersionTest {
     companion object {
-        val oracleJDK8 = """
-java version "1.8.0_151"
+        val oracleJDK8 = """java version "1.8.0_151"
 Java(TM) SE Runtime Environment (build 1.8.0_151-b12)
 Java HotSpot(TM) 64-Bit Server VM (build 25.151-b12, mixed mode)
 """.trimIndent()
 
-        val openJDKOutput8 = """
-openjdk version "1.8.0_131"
+        val openJDKOutput8 = """openjdk version "1.8.0_131"
 OpenJDK Runtime HiveConfig (build 1.8.0_131-8u131-b11-2ubuntu1.16.04.3-b11)
 OpenJDK 64-Bit Server VM (build 25.131-b11, mixed mode)
         """.trimIndent()
 
-        val openJDKOutput9 = """
-openjdk version "9-internal"
+        val openJDKOutput9 = """openjdk version "9-internal"
 OpenJDK Runtime HiveConfig (build 9-internal+0-2016-04-14-195246.buildd.src)
 OpenJDK 64-Bit Server VM (build 9-internal+0-2016-04-14-195246.buildd.src, mixed mode)
         """.trimIndent()
