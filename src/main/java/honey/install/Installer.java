@@ -11,6 +11,8 @@ public class Installer {
 
   public static final String MAVEN_CENTRAL = "http://central.maven.org/maven2";
 
+  public static final String MY_JAR = "build/libs/honey-mouth-0.0.1-SNAPSHOT.jar";
+
   public static void main(String[] args) throws Exception {
     String[] artifacts = {
       "jline:jline:2.14.5",
@@ -19,7 +21,7 @@ public class Installer {
 
     new Installer().install(artifacts);
 
-    final File mySource = getMyJar(Installer.class);
+    final File mySource = getMyJar(Installer.class, MY_JAR);
     final String classpath = (mySource.isDirectory() ? mySource.getPath() : mySource.getName()) + ":lib/*";
 
     System.out.println("Using classpath: " + classpath);
@@ -90,9 +92,17 @@ public class Installer {
     new JavaArtifactResolver(repos).resolveAll(libDir, arts);
   }
 
-  public static File getMyJar(Class<?> aClass) {
+  public static File getMyJar(Class<?> aClass, String fallbackJarPath) {
     try {
-      return new File(aClass.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+      File file = new File(aClass.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+
+      if(file.isDirectory()) {
+        file = new File(fallbackJarPath);
+
+        if(!file.exists() || file.isDirectory() || !file.getName().endsWith(".jar")) throw new RuntimeException("can't find my jar. you need to specify fallback jar for dev purposes");
+      }
+
+      return file;
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
     }

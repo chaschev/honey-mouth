@@ -7,6 +7,7 @@ import honey.config.dsl.Rights.omit
 import honey.config.dsl.ScriptOption.jvmOpts
 import honey.config.dsl.ScriptOption.memory
 import honey.config.example.HiveConfigs
+import honey.pack.JavaVersion
 
 import java.util.Date
 
@@ -45,9 +46,8 @@ object Config {
 
 build<HiveConfigs> {
   require {
-    "java" version "^9.0"
-    "javac" version "^9.0"
-    "badger-vcs" version "^0.0.3"
+    "java" version "^9.0" via JavaVersion.parser
+//    "badger-vcs" version "^0.0.3"
   }
 
   before {
@@ -74,22 +74,22 @@ build<HiveConfigs> {
     default = omit
 
     add(Rights.UserRights.readOnly)
-    add(Rights.UserRights("normal", "a=rw"))
+    add(Rights.UserRights("normal", "a=rw", users("honey")))
   }
 
   folders {
-    app = Folder("/var/lib/$appName",
-      users("honey"),
-      rights("normal")
-    )
-    "some" to Folder("/var/lib/$appName")
-    "resources" to Folder("$app/resources")
+//    app = Folder("/var/lib/$appName",
+//      rights("normal")
+//    )
+//    "some" to Folder("/var/lib/$appName")
+    app = Folder("build/test-install")
+    "resources" to Folder("${app.path}/resources")
   }
 
   app {
     resources {
-      "/honey/*" into folders("resources")
-      "/honey/badger/*" into folders("resources")
+      "/honey/*.txt" into folders("resources")
+      "/honey/badger/*.txt" into folders("resources")
     }
   }
 

@@ -4,7 +4,10 @@ import honey.config.dsl.InstallDSLBuilder
 import honey.util.FileUtils
 import honey.util.extractResource
 import honey.util.mkdirsSafely
+import kotlinx.coroutines.experimental.runBlocking
+import org.jetbrains.kotlin.preprocessor.mkdirsOrFail
 import java.io.File
+import java.util.zip.ZipFile
 import javax.script.ScriptEngineManager
 
 
@@ -77,12 +80,53 @@ class AppInstaller {
 
     FileUtils.extractResource("/install.kts", File("kt"), this)
 
-    File("kt/install.kts").reader().use { reader ->
+    val dsl = File("kt/install.kts").reader().use { reader ->
       val dsl = kotlinEngine.eval(reader) as InstallDSLBuilder<*>
       println(dsl.config)
+      dsl
     }
+
+    dsl.requiredVersions?.verify()
+
+    dsl.before?.invoke()
+
+    dsl.folders().map.values.forEach { folder ->
+      folder.file.mkdirsOrFail()
+
+      runBlocking {
+        folder.applyRights()
+      }
+    }
+
+    dsl.app?.apply {
+      if (resourcesList.size > 0) {
+        val zipFile = ZipFile(Installer.getMyJar(javaClass, Installer.MY_JAR))
+
+        zipFile.entries().asSequence().forEach { entry ->
+          if (!entry.isDirectory) {
+
+            resourcesList.forEach { (pattern, folder) ->
+              if (pattern.containsMatchIn("/" + entry.name)) {
+                zipFile.getInputStream(entry).use { input ->
+                  val destFile = File(folder.file, entry.name)
+
+                  destFile.absoluteFile.parentFile.mkdirsOrFail()
+
+                  println("extracting /${entry.name} -> $destFile")
+                  destFile.outputStream().use { output ->
+                    input.copyTo(output)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
   }
 }
+
 
 
 

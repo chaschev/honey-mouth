@@ -1,5 +1,13 @@
 package honey.pack
 
+interface TextParser<T>{
+  fun parse(s: String) : T
+}
+
+interface VersionParser : TextParser<Version> {
+  val versionParam: String
+}
+
 data class JavaVersion(
   val isOpenJDK: Boolean,
   val version: Version
@@ -16,6 +24,13 @@ data class JavaVersion(
     "${if (isOpenJDK) "openjdk" else "oraclejdk"} version ${version.asString()}"
 
   companion object {
+    val parser = object : VersionParser {
+      override fun parse(s: String): Version = parseJavaVersion(s)
+
+      override val versionParam: String
+        get() = "-version"
+    }
+
     fun parseJavaVersion(s: String): JavaVersion {
       val isOpenJDK = s.contains("openjdk")
 
