@@ -3,7 +3,7 @@ package honey.install
 import honey.maven.MavenRepo
 import honey.util.FileUtils
 import honey.util.download
-import rocket.util.HashUtils
+import honey.util.HashUtils
 import java.io.File
 
 class MavenArtifactResolver(

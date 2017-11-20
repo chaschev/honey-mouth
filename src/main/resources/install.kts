@@ -6,11 +6,38 @@ import honey.config.dsl.Rights
 import honey.config.dsl.Rights.omit
 import honey.config.dsl.ScriptOption.jvmOpts
 import honey.config.dsl.ScriptOption.memory
-import honey.config.example.ExampleConfig
 import honey.config.example.HiveConfigs
-import java.util.*
 
-val appName = "honey-badger"
+import java.util.Date
+
+import honey.config.example.HiveConfigs as configs
+import honey.config.example.HiveConfig as config
+import honey.config.example.HiveCellConfig as cell
+
+
+val appName = "honey-mouth"
+val appVersion = "0.0.1-SNAPSHOT"
+
+object Config {
+  val staging = configs(
+    "staging",
+    config("conf1",
+      listOf(
+        cell("", "ip4", "publicIp1", emptyList()),
+        cell("", "ip3", "ip2", emptyList())
+      )
+    ),
+    config("conf2",
+      listOf(
+        cell("", "ip4", "publicIp2", emptyList()),
+        cell("", "ip3", "ip2", emptyList())
+      )
+    )
+  )
+
+  val dev = staging.copy(name = "dev")
+  val prod = staging.copy(name = "prod")
+}
 
 // Gradle will update placeholders
 // In this script
@@ -30,11 +57,11 @@ build<HiveConfigs> {
   config {
     StoredConfig(
       appName = appName,
-      version = "0.0.1",
-      revision = "6efe8a",
-      buildTime = Date(),
+      version = appVersion,
+      revision = "945b93",
+      buildTime = Date(1511184575962L),
       team = "Andrey Chaschev",
-      configs = listOf(ExampleConfig.dev, ExampleConfig.staging, ExampleConfig.prod)
+      configs = listOf(Config.dev, Config.staging, Config.prod)
     )
   }
 
@@ -98,3 +125,5 @@ build<HiveConfigs> {
     // will make schema migrations, to match new app logic
   }
 }
+
+

@@ -41,8 +41,5 @@ data class JavaVersion(
   override fun equals(other: Any?): Boolean = super.equalsImpl(other)
 }
 
-
-
-
 fun Regex.tryFind(s: String): List<String>? =
   find(s)?.groups?.map { it?.value ?: "null" }

@@ -4,7 +4,6 @@ import honey.config.dsl.InstallDSLBuilder
 import honey.util.FileUtils
 import honey.util.extractResource
 import honey.util.mkdirsSafely
-import honey.util.readAppResource
 import java.io.File
 import javax.script.ScriptEngineManager
 
@@ -25,11 +24,17 @@ KGit application
      System.Exit
 
  Installation (must be Kotlin + a couple of libs):
-  "Simple DSL for JARs (mem spec, etc) + Installation Script". Take from AppAssempler https://goo.gl/Cy1Qp5. That really should not be much
-  Installation Script:
+  ok "Simple DSL for JARs (mem spec, etc) + Installation Script". Take from AppAssempler https://goo.gl/Cy1Qp5. That really should not be much
+  ok Installation Script:
     Creates Dirs (required: lib dir - in DSL)    !! Classpath is easy https://stackoverflow.com/a/219801/1851024
     Copies Files from Resources
     Creates Running Scripts
+
+  Release Plugin:
+    task write /jars
+    task update appName, appVersion, revision
+
+
 
   App Jar will hold information about runnable configurations in Kotlin DSL
   Installer will run this DSL and generate all required scripts
@@ -59,7 +64,6 @@ class AppInstaller {
     }
   }
 
-
   val scriptEngineManager = ScriptEngineManager()
   val kotlinEngine = scriptEngineManager.getEngineByExtension("kts")!!
 
@@ -71,15 +75,15 @@ class AppInstaller {
   fun install() {
     FileUtils.mkdirsSafely("kt")
 
-    FileUtils.extractResource("/Config.kt", File("kt"), this)
     FileUtils.extractResource("/install.kts", File("kt"), this)
 
-
-    val dsl = kotlinEngine.eval(File("kt/install.kts").reader()) as InstallDSLBuilder<*>
-
-    println(dsl.config)
+    File("kt/install.kts").reader().use { reader ->
+      val dsl = kotlinEngine.eval(reader) as InstallDSLBuilder<*>
+      println(dsl.config)
+    }
   }
 }
+
 
 
 //    engineManager.engineFactories.forEach {

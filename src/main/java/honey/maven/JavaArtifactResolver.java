@@ -159,7 +159,7 @@ public class JavaArtifactResolver {
   }
 
   void downloadJavaWay(String url, File dest) {
-        System.out.printf("GET %s  ", url);
+//        System.out.printf("GET %s  ", url);
 
     URL webUrl = null;
 
