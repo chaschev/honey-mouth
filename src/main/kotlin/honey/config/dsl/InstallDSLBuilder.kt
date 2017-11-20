@@ -10,13 +10,12 @@ class InstallDSLBuilder<C : AppConfig> {
   private var updateApp: (() -> Unit)? = null
   private var users: Users? = null
   private var rights: RightsDSL? = null
-  private lateinit var folders: FoldersDSL
+  internal lateinit var folders: FoldersDSL
 
   var app: AppDSLBuilder? = null
 
   lateinit var config: StoredConfig<C>
 
-  private lateinit var itemsInFolders: List<ObjectWithFolder<*>>
 
   val scripts = ArrayList<ScriptDSLBuilder>()
   val linkMakers = ArrayList<LinkDSLBuilder>()
@@ -80,7 +79,7 @@ class InstallDSLBuilder<C : AppConfig> {
   }
 
   fun inFolder(path: String, builder: InFoldersDSLBuilder.() -> Unit) {
-    itemsInFolders = InFoldersDSLBuilder(this).folder(path).apply(builder).build()
+     InFoldersDSLBuilder(this).folder(path).apply(builder).build()
   }
 
   fun inFolder(folder: Folder, builder: InFoldersDSLBuilder.() -> Unit)

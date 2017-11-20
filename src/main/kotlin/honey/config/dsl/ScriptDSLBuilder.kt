@@ -9,8 +9,12 @@ class ScriptDSLBuilder : ObjectWithFolder<ScriptDSLBuilder> {
 
   var args: String? = null
   var env: Map<String, String> = emptyMap()
+
+  // these are actually Java Options
   var options: Set<ScriptOption> = emptySet()
 
   override fun build(): ScriptDSLBuilder = this
+
+  fun jvmOpts(): String = options.joinToString(" ") { it.asArgs() }
 
 }

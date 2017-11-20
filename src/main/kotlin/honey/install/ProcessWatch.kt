@@ -39,7 +39,11 @@ fun Process.watch() = ProcessWatch(this)
 
 suspend fun String.exec(timeoutMs: Int = 5000, inheritIO: Boolean = false): StringBuilder {
   // todo = a better split
-  val b = ProcessBuilder().command(this.split("\\s".toRegex()))
+  val b = ProcessBuilder().command(
+    "bash",
+    "-c",
+    this
+  )
   if(inheritIO) b.inheritIO()
   return b.start().watch().await(timeoutMs)
 }

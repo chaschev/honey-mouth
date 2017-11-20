@@ -1,6 +1,7 @@
 package honey.install
 
 import honey.config.dsl.InstallDSLBuilder
+import honey.config.dsl.ScriptDSLBuilder
 import honey.util.FileUtils
 import honey.util.extractResource
 import honey.util.mkdirsSafely
@@ -90,40 +91,34 @@ class AppInstaller {
 
     dsl.before?.invoke()
 
-    dsl.folders().map.values.forEach { folder ->
-      folder.file.mkdirsOrFail()
+    dsl.folders().makeDefault()
 
-      runBlocking {
-        folder.applyRights()
-      }
+    val myJar = Installer.getMyJar(javaClass, Installer.MY_JAR)
+
+    runBlocking {
+      println("copying libs..")
+      "rm -r ${dsl.folders.lib.path}/*.jar".exec(inheritIO = true)
+      "cp ${myJar.path} ${dsl.folders.lib.path}".exec(inheritIO = true)
+      "cp lib/*.jar ${dsl.folders.lib.path}".exec(inheritIO = true)
     }
 
-    dsl.app?.apply {
-      if (resourcesList.size > 0) {
-        val zipFile = ZipFile(Installer.getMyJar(javaClass, Installer.MY_JAR))
+    dsl.app?.extractResources()
 
-        zipFile.entries().asSequence().forEach { entry ->
-          if (!entry.isDirectory) {
+    dsl.scripts?.forEach {item ->
+      if(item is ScriptDSLBuilder) {
 
-            resourcesList.forEach { (pattern, folder) ->
-              if (pattern.containsMatchIn("/" + entry.name)) {
-                zipFile.getInputStream(entry).use { input ->
-                  val destFile = File(folder.file, entry.name)
-
-                  destFile.absoluteFile.parentFile.mkdirsOrFail()
-
-                  println("extracting /${entry.name} -> $destFile")
-                  destFile.outputStream().use { output ->
-                    input.copyTo(output)
-                  }
-                }
-              }
-            }
-          }
-        }
+        File(dsl.folders.bin.file, item.id).writeText(
+          UnixStartScript(
+            dsl.config.appName,
+            dsl.folders.app.path,
+            "APP_OPTS",
+            item.jvmOpts(),
+            "${dsl.folders.lib.file.absoluteFile.path}/*",
+            "",
+            item.appClass
+          ).script())
       }
     }
-
   }
 }
 

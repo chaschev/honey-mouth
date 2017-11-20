@@ -1,11 +1,9 @@
 package honey.config.dsl
 
-import honey.install.ProcessWatch
-import honey.install.exec
-import honey.pack.Version
-import honey.pack.VersionParser
-import honey.pack.VersionRange
-import kotlinx.coroutines.experimental.runBlocking
+import honey.install.Installer
+import org.jetbrains.kotlin.preprocessor.mkdirsOrFail
+import java.io.File
+import java.util.zip.ZipFile
 
 class AppDSLBuilder {
   val resourcesList = ArrayList<Pair<Regex, Folder>>()
@@ -19,58 +17,31 @@ class AppDSLBuilder {
       resourcesList.add(Pair(this.replace("*", ".*").toRegex(), folder))
     }
   }
-}
 
-class RequireDSLBuilder {
-  val list = ArrayList<Pair<String, String>>()
-  val viaList = ArrayList<Triple<String, String, VersionParser>>()
+  fun extractResources() {
+    if (resourcesList.size > 0) {
+      val zipFile = ZipFile(Installer.getMyJar(javaClass, Installer.MY_JAR))
 
-  infix fun String.version(versionTemplate: String): Pair<String, String> {
-    val pair = Pair(this, versionTemplate)
-    list.add(pair)
+      zipFile.entries().asSequence().forEach { entry ->
+        if (!entry.isDirectory) {
 
-    return pair
-  }
+          resourcesList.forEach { (pattern, folder) ->
+            if (pattern.containsMatchIn("/" + entry.name)) {
+              zipFile.getInputStream(entry).use { input ->
+                val destFile = File(folder.file, entry.name)
 
-  infix fun Pair<String, String>.via(parser: VersionParser) {
-    list.removeAt(list.lastIndex)
-    viaList.add(Triple(first, second, parser))
+                destFile.absoluteFile.parentFile.mkdirsOrFail()
 
-  }
-
-  fun verify() {
-    println("checking system requirements")
-
-    list.forEach { (command, rangeS) ->
-      val versionS = runBlocking {
-        ProcessWatch(ProcessBuilder(command, "--version").inheritIO().start()).await(1000)
-      }.toString()
-
-      val parsedVersion = Version.parse(versionS)
-
-      val range = VersionRange.parse(rangeS)
-
-      if (!range.contains(parsedVersion)) {
-        throw Exception("version didn't match for $command: found $parsedVersion, expected: $range")
-      }
-
-      println("[ok] found $command version $parsedVersion")
-    }
-
-    runBlocking {
-      viaList.forEach { (command, rangeS, parser) ->
-        val versionS = "$command ${parser.versionParam}".exec().toString()
-
-        val parsedVersion = parser.parse(versionS)
-
-        val range = VersionRange.parse(rangeS)
-
-        if (!range.contains(parsedVersion)) {
-          throw Exception("version didn't match for $command: found $parsedVersion, expected: $range")
+                println("extracting /${entry.name} -> $destFile")
+                destFile.outputStream().use { output ->
+                  input.copyTo(output)
+                }
+              }
+            }
+          }
         }
-
-        println("[ok] found $command version $parsedVersion")
       }
     }
   }
 }
+
