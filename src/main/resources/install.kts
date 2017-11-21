@@ -17,7 +17,7 @@ import honey.config.example.HiveCellConfig as cell
 
 
 val appName = "honey-mouth"
-val appVersion = "0.0.1-SNAPSHOT"
+val appVersion = "0.0.1"
 
 object Config {
   val staging = configs(
@@ -58,8 +58,8 @@ build<HiveConfigs> {
     StoredConfig(
       appName = appName,
       version = appVersion,
-      revision = "945b93",
-      buildTime = Date(1511184575962L),
+      revision = "eeb557",
+      buildTime = Date(1511281156549L),
       team = "Andrey Chaschev",
       configs = listOf(Config.dev, Config.staging, Config.prod)
     )
