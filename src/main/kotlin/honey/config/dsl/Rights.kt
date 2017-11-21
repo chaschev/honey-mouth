@@ -20,16 +20,19 @@ sealed class Rights(open val name: String) {
   ) : Rights(name) {
 
     override suspend fun apply(file: File) {
-      "chmod ${if(recursive) "-R" else ""} $access ${file.path}".exec(1000)
+      "chmod ${if (recursive) "-R" else ""} $access ${file.path}".exec(1000)
       owner.apply(file)
     }
 
     fun noRecurse() = copy(recursive = false)
-
-    companion object {
-      val readOnly = UserRights("readOnly", "a=rx")
-      val all = UserRights("all", "a=rwx")
-      val writeProtect = UserRights("writeProtect", "u=rwx,go=rx")
-    }
   }
+
+  companion object {
+    val readOnly = UserRights("readOnly", "a=rx")
+    val executable = UserRights("executable", "u+x")
+    val executableAll = UserRights("executable", "a+x")
+    val all = UserRights("all", "a=rwx")
+    val writeProtect = UserRights("writeProtect", "u=rwx,go=rx")
+  }
+
 }

@@ -31,6 +31,8 @@ while [ -h "${'$'}PRG" ] ; do
         PRG=`dirname "${'$'}PRG"`"/${'$'}link"
     fi
 done
+
+
 SAVED="`pwd`"
 cd "`dirname \"${'$'}PRG\"`/${appHomeRelativePath}" >/dev/null
 APP_HOME="`pwd -P`"
@@ -40,7 +42,7 @@ APP_NAME="${applicationName}"
 APP_BASE_NAME=`basename "${'$'}0"`
 
 # Add default JVM options here. You can also use JAVA_OPTS and ${optsEnvironmentVar} to pass JVM options to this script.
-DEFAULT_JVM_OPTS=${defaultJvmOpts}
+DEFAULT_JVM_OPTS="${defaultJvmOpts}"
 
 # Use the maximum available, or set MAX_FD != -1 to use that value.
 MAX_FD="maximum"
@@ -168,19 +170,28 @@ fi
 
 # Escape application args
 save () {
+    # TODO: escape properly
     for i do printf %s\\\\n "${'$'}i" | sed "s/'/'\\\\\\\\''/g;1s/^/'/;\\${'$'}s/\\${'$'}/' \\\\\\\\/" ; done
     echo " "
 }
-APP_ARGS=${'$'}(save "${'$'}@")
+#APP_ARGS=${'$'}(save "${'$'}@")
+APP_ARGS="${'$'}@"
+
+#echo PRG=${'$'}PRG
+#echo APP_ARGS=${'$'}APP_ARGS
+#echo APP_HOME=${'$'}APP_HOME
+#echo CLASSPATH=${'$'}CLASSPATH
 
 # Collect all arguments for the java command, following the shell quoting and substitution rules
-eval set -- ${'$'}DEFAULT_JVM_OPTS ${'$'}JAVA_OPTS ${'$'}${optsEnvironmentVar} <% if ( appNameSystemProperty ) { %>"\"-D${appNameSystemProperty}=${'$'}APP_BASE_NAME\"" <% } %>-classpath "\"${'$'}CLASSPATH\"" ${mainClassName} "${'$'}APP_ARGS"
+eval set -- ${'$'}DEFAULT_JVM_OPTS ${'$'}JAVA_OPTS ${'$'}${optsEnvironmentVar} -classpath "\"${'$'}CLASSPATH\"" ${mainClassName} "${'$'}APP_ARGS"
+#echo ${'$'}DEFAULT_JVM_OPTS ${'$'}JAVA_OPTS ${'$'}${optsEnvironmentVar} -classpath "\"${'$'}CLASSPATH\"" ${mainClassName} "${'$'}APP_ARGS"
 
 # by default we should be in the correct project dir, but when run from Finder on Mac, the cwd is wrong
 if [ "${'$'}(uname)" = "Darwin" ] && [ "${'$'}HOME" = "${'$'}PWD" ]; then
   cd "${'$'}(dirname "${'$'}0")"
 fi
 
+#echo exec "${'$'}JAVACMD" "${'$'}@"
 exec "${'$'}JAVACMD" "${'$'}@"
   """.trim()
 }

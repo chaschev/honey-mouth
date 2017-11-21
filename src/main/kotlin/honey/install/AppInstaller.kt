@@ -1,14 +1,12 @@
 package honey.install
 
 import honey.config.dsl.InstallDSLBuilder
-import honey.config.dsl.ScriptDSLBuilder
+import honey.config.dsl.Rights
 import honey.util.FileUtils
 import honey.util.extractResource
 import honey.util.mkdirsSafely
 import kotlinx.coroutines.experimental.runBlocking
-import org.jetbrains.kotlin.preprocessor.mkdirsOrFail
 import java.io.File
-import java.util.zip.ZipFile
 import javax.script.ScriptEngineManager
 
 
@@ -100,29 +98,20 @@ class AppInstaller {
       "rm -r ${dsl.folders.lib.path}/*.jar".exec(inheritIO = true)
       "cp ${myJar.path} ${dsl.folders.lib.path}".exec(inheritIO = true)
       "cp lib/*.jar ${dsl.folders.lib.path}".exec(inheritIO = true)
+
+
+      dsl.app?.extractResources()
+
+      dsl.scripts.forEach { item ->
+       item.writeScript()
+      }
     }
 
-    dsl.app?.extractResources()
-
-    dsl.scripts?.forEach {item ->
-      if(item is ScriptDSLBuilder) {
-
-        File(dsl.folders.bin.file, item.id).writeText(
-          UnixStartScript(
-            dsl.config.appName,
-            dsl.folders.app.path,
-            "APP_OPTS",
-            item.jvmOpts(),
-            "${dsl.folders.lib.file.absoluteFile.path}/*",
-            "",
-            item.appClass
-          ).script())
-      }
+    dsl.inFolders.forEach { inFolder ->
+      inFolder.linkScripts()
     }
   }
 }
-
-
 
 
 //    engineManager.engineFactories.forEach {

@@ -1,7 +1,12 @@
 package honey.config.dsl
 
-class ScriptDSLBuilder : ObjectWithFolder<ScriptDSLBuilder> {
-  override lateinit var folderPath: String
+import honey.install.UnixStartScript
+import java.io.File
+
+class ScriptDSLBuilder(
+  override var folderPath: String,
+  val dsl: InstallDSLBuilder<*>
+) : ObjectWithFolder<ScriptDSLBuilder> {
 
   lateinit var id: String
 //  var name : String = id ?: null
@@ -17,4 +22,21 @@ class ScriptDSLBuilder : ObjectWithFolder<ScriptDSLBuilder> {
 
   fun jvmOpts(): String = options.joinToString(" ") { it.asArgs() }
 
+  fun file() = File(folderPath, id)
+
+  suspend fun writeScript() {
+    val scriptFile = file()
+    scriptFile.writeText(
+      UnixStartScript(
+        dsl.config.appName,
+        "..",  //TODO fix appHomePath from app
+        "APP_OPTS",
+        jvmOpts(),
+        "${dsl.folders.lib.file.absoluteFile.path}/*",
+        "",
+        appClass
+      ).script())
+
+    Rights.executableAll.apply(scriptFile)
+  }
 }

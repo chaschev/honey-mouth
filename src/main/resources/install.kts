@@ -73,7 +73,7 @@ build<HiveConfigs> {
   rights {
     default = omit
 
-    add(Rights.UserRights.readOnly)
+    add(Rights.readOnly)
     add(Rights.UserRights("normal", "a=rw", users("honey")))
   }
 
@@ -110,7 +110,7 @@ build<HiveConfigs> {
 
   }
 
-  inFolder("/usr/bin") {
+  inFolder("/usr/local/bin") {
     link(id = "my-ass")
     linkAllScripts()
   }

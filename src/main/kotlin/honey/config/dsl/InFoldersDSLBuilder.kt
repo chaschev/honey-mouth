@@ -1,47 +1,56 @@
 package honey.config.dsl
 
-class InFoldersDSLBuilder(val parent: InstallDSLBuilder<*>) {
-  private val list = ArrayList<ObjectWithFolder<*>>()
+import honey.install.exec
+import kotlinx.coroutines.experimental.runBlocking
 
-  lateinit var folderPath: String
+class InFoldersDSLBuilder(
+  override var folderPath: String,
+  val parent: InstallDSLBuilder<*>
+) : ObjectWithFolder<InFoldersDSLBuilder> {
 
-  val links = Links()
-
-  fun folder(folderPath: String): InFoldersDSLBuilder {
-    this.folderPath = folderPath; return this
-  }
+  var linkAllScripts = false
+  val ids: ArrayList<String> = ArrayList()
 
   fun script(builder: ScriptDSLBuilder.() -> Unit): ScriptDSLBuilder {
-    val script = ScriptDSLBuilder().apply(builder).build()
+    val script = ScriptDSLBuilder(folderPath, parent).apply(builder).build()
 
-    list.add(script)
+    parent.scripts.add(script)
 
     return script
   }
 
-  data class Links(
-    val ids: ArrayList<String> = ArrayList(),
-    var linkAllScripts: Boolean = false
-  )
-
   fun linkAllScripts() {
-    links.linkAllScripts = true
+    linkAllScripts = true
   }
 
 
   fun link(id: String) {
-    if (parent.scripts.find { it.id == id } == null) {
+    if (parent.script(id) == null) {
       throw Exception("scripts id not found: $id")
     }
 
-    links.ids.add(id)
+    ids.add(id)
   }
 
-  fun build(): ArrayList<ObjectWithFolder<*>> {
-    list.forEach { it.folderPath = folderPath }
+  override fun build(): InFoldersDSLBuilder {
+    return this
+  }
 
-    parent.sortInFoldersOut(list)
+  fun linkScripts() {
+    if(linkAllScripts) {
+      parent.scripts.forEach {
+        linkScript(it.id)
+      }
+    }
 
-    return list
+    ids.forEach {linkScript(it)}
+  }
+
+  private fun linkScript(id: String) {
+    runBlocking {
+      println("linking ${parent.script(id)!!.folderPath}/$id from $folderPath/$id")
+      "rm $folderPath/$id".exec(1000)
+      "ln -s ${parent.script(id)!!.file().absolutePath} $folderPath/$id".exec(1000, inheritIO = true)
+    }
   }
 }

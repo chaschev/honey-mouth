@@ -11,14 +11,13 @@ class InstallDSLBuilder<C : AppConfig> {
   private var users: Users? = null
   private var rights: RightsDSL? = null
   internal lateinit var folders: FoldersDSL
+  internal var inFolders: ArrayList<InFoldersDSLBuilder> = ArrayList()
 
   var app: AppDSLBuilder? = null
 
   lateinit var config: StoredConfig<C>
 
-
   val scripts = ArrayList<ScriptDSLBuilder>()
-  val linkMakers = ArrayList<LinkDSLBuilder>()
 
   fun build(): InstallDSLBuilder<C> = this
 
@@ -79,7 +78,9 @@ class InstallDSLBuilder<C : AppConfig> {
   }
 
   fun inFolder(path: String, builder: InFoldersDSLBuilder.() -> Unit) {
-     InFoldersDSLBuilder(this).folder(path).apply(builder).build()
+    inFolders.add(
+      InFoldersDSLBuilder(path,this).apply(builder).build()
+    )
   }
 
   fun inFolder(folder: Folder, builder: InFoldersDSLBuilder.() -> Unit)
@@ -88,8 +89,8 @@ class InstallDSLBuilder<C : AppConfig> {
   fun sortInFoldersOut(list: List<ObjectWithFolder<*>>) {
     list.forEach {
       when (it) {
-        is ScriptDSLBuilder -> scripts.add(it)
-        is LinkDSLBuilder -> linkMakers.add(it)
+//        is ScriptDSLBuilder -> scripts.add(it)
+//        is LinkDSLBuilder -> linkMakers.add(it)
         else -> TODO()
       }
     }
@@ -99,6 +100,10 @@ class InstallDSLBuilder<C : AppConfig> {
     fun <C : AppConfig> build(builder: InstallDSLBuilder<C>.() -> Unit):
       InstallDSLBuilder<C> =
       InstallDSLBuilder<C>().apply(builder).build()
+  }
+
+  fun script(id: String): ScriptDSLBuilder? {
+    return scripts.find { it.id == id }
   }
 }
 
