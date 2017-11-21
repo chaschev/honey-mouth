@@ -58,8 +58,8 @@ build<HiveConfigs> {
     StoredConfig(
       appName = appName,
       version = appVersion,
-      revision = "904717",
-      buildTime = Date(1511281307261L),
+      revision = "f5d64d",
+      buildTime = Date(1511284831547L),
       team = "Andrey Chaschev",
       configs = listOf(Config.dev, Config.staging, Config.prod)
     )
