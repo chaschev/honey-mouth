@@ -13,7 +13,7 @@ data class FoldersDSL(
   fun makeDefault() {
     runBlocking {
       listOf(app, bin, lib, log, *map.values.toTypedArray()).forEach {
-        it.file.mkdirsOrFail();
+        it.file.mkdirsOrFail()
         it.applyRights()
       }
     }
