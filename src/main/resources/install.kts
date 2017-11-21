@@ -15,7 +15,6 @@ import honey.config.example.HiveConfigs as configs
 import honey.config.example.HiveConfig as config
 import honey.config.example.HiveCellConfig as cell
 
-
 val appName = "honey-mouth"
 val appVersion = "0.0.1"
 

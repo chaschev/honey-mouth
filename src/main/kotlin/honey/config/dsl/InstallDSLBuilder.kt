@@ -6,8 +6,8 @@ import honey.config.StoredConfig
 class InstallDSLBuilder<C : AppConfig> {
   var requiredVersions: RequireDSLBuilder? = null
   internal var before: (() -> Unit)? = null
-  private var after: (() -> Unit)? = null
-  private var updateApp: (() -> Unit)? = null
+  internal var after: (() -> Unit)? = null
+  internal var updateApp: (() -> Unit)? = null
   private var users: Users? = null
   private var rights: RightsDSL? = null
   internal lateinit var folders: FoldersDSL

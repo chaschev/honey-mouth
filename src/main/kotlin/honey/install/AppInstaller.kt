@@ -110,6 +110,10 @@ class AppInstaller {
     dsl.inFolders.forEach { inFolder ->
       inFolder.linkScripts()
     }
+
+    dsl.after?.invoke()
+
+    dsl.updateApp?.invoke()
   }
 }
 
