@@ -17,17 +17,23 @@ import java.util.*;
 
 public class JavaArtifactResolver {
   protected List<MavenRepo> repos;
+  protected boolean forceUpdate = false;
 
-  public JavaArtifactResolver(MavenRepo... repos) {
-    this.repos = Arrays.asList(repos);
+  public JavaArtifactResolver(List<MavenRepo> repos) {
+    this.repos = repos;
   }
 
-  public void resolveAll(File cacheFolder, String... arts) {
+  public void resolveAll(File cacheFolder, List<String> arts) {
     for (String art : arts) {
       if (resolve(art, cacheFolder) == null) {
         throw new RuntimeException("couldn't resolve " + art);
       }
     }
+  }
+
+  public JavaArtifactResolver setForceUpdate(boolean forceUpdate) {
+    this.forceUpdate = forceUpdate;
+    return this;
   }
 
   @Nullable
@@ -47,6 +53,10 @@ public class JavaArtifactResolver {
 
       File jarFile = new File(cacheFolder, file + ".jar");
       File sha1File = new File(cacheFolder, file + ".jar.sha1");
+
+      if(forceUpdate) {
+        downloadJavaWay(url + ".jar.sha1", sha1File);
+      }
 
       ResolveResult result = new ResolveResult(jarFile, sha1File);
 
