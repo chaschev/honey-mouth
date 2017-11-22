@@ -1,7 +1,6 @@
 package honey.install
 
 import honey.config.dsl.InstallDSLBuilder
-import honey.config.dsl.Rights
 import honey.util.FileUtils
 import honey.util.extractResource
 import honey.util.mkdirsSafely

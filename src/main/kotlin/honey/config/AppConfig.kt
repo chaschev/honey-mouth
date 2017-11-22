@@ -5,8 +5,7 @@ interface AppConfig {
   fun init(): Unit
 }
 
-class ConfigManager<T : AppConfig> {
-
+interface Hosts {
+  fun getAllHosts(): Set<String>
 }
-
 

@@ -9,8 +9,4 @@ data class HiveConfig(
 ) {
   operator fun get(name: String): HiveCellConfig = cells.find { it.name == name }!!
   fun byLabel(label: String): List<HiveCellConfig> = cells.filter { it.labels.contains(label) }
-
-  companion object {
-
-  }
 }
