@@ -1,11 +1,18 @@
 package honey.install
 
+import com.xenomachina.argparser.ArgParser
+import com.xenomachina.argparser.DefaultHelpFormatter
+import honey.config.AppConfig
 import honey.config.dsl.InstallDSLBuilder
+import honey.config.dsl.UpdateScriptDSLBuilder
+import honey.config.example.HiveConfigs
+import honey.pack.Version
 import honey.util.FileUtils
 import honey.util.extractResource
 import honey.util.mkdirsSafely
 import kotlinx.coroutines.experimental.runBlocking
 import java.io.File
+import java.nio.file.Files
 import javax.script.ScriptEngineManager
 
 
@@ -57,32 +64,39 @@ Don't need a tool like npm, there is Gradle. Though Gradle doesn't provide API f
 */
 
 
-class AppInstaller {
-  companion object {
-    @JvmStatic
-    fun main(args: Array<String>) {
-      AppInstaller().install()
-    }
-  }
-
+class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
   val scriptEngineManager = ScriptEngineManager()
   val kotlinEngine = scriptEngineManager.getEngineByExtension("kts")!!
 
+  private lateinit var installOptions: HoneyMouthOptions<T>
+
+  companion object {
+    val helpFormatter = DefaultHelpFormatter("prologue", "epilogue")
+
+    @JvmStatic
+    fun main(args: Array<String>) {
+      val r = AppInstaller<HiveConfigs>(AppInstaller::class.java).run(args)
+
+      System.exit(r)
+    }
+  }
+
+  fun run(args: Array<String>): Int {
+    val parser = ArgParser(args, helpFormatter = helpFormatter)
+
+    return HoneyMouthArgs<T>(parser, resourcesClass).run()
+  }
   /**
    * At this stage we have all required JARs in our classpath.
    *
+   *   mini-repo is a library cache. Library cache is useful for switching between versions.
+   *   libs is an active version
+   *
    * Run the release script.
    */
-  fun install() {
-    FileUtils.mkdirsSafely("kt")
-
-    FileUtils.extractResource("/install.kts", File("kt"), this)
-
-    val dsl = File("kt/install.kts").reader().use { reader ->
-      val dsl = kotlinEngine.eval(reader) as InstallDSLBuilder<*>
-      println(dsl.config)
-      dsl
-    }
+  fun install(options: HoneyMouthOptions<T>): Int {
+    dsl.installOptions = options
+    this.installOptions = options
 
     dsl.requiredVersions?.verify()
 
@@ -90,14 +104,26 @@ class AppInstaller {
 
     dsl.folders().makeDefault()
 
-    val myJar = Installer.getMyJar(javaClass, Installer.MY_JAR)
-
     runBlocking {
-      println("copying libs..")
-      "rm -r ${dsl.folders.lib.path}/*.jar".exec(inheritIO = true)
-      "cp ${myJar.path} ${dsl.folders.lib.path}".exec(inheritIO = true)
-      "cp lib/*.jar ${dsl.folders.lib.path}".exec(inheritIO = true)
+      val libDir = File(options.installationPath, "lib")
 
+      // move all dependencies into the lib dir
+
+      val libs = libDir.listFiles()
+
+      println("moving ${libs?.size ?: 0} libs..")
+
+      require(libs?.isNotEmpty() == true, {"$libDir/ folder must not be empty!"})
+
+      dsl.folders.lib.file.listFiles().forEach { it.delete() }
+
+      if(libDir.canonicalPath != dsl.folders.lib.file.canonicalPath) {
+        for (file in libs!!) {
+          Files.move(file.toPath(), File(dsl.folders.lib.path, file.name).toPath())
+        }
+      } else {
+        println("lib dir didn't move")
+      }
 
       dsl.app?.extractResources()
 
@@ -113,10 +139,38 @@ class AppInstaller {
     dsl.after?.invoke()
 
     dsl.updateApp?.invoke()
+
+    return 0
   }
+
+  val dsl: InstallDSLBuilder<T> by lazy   {
+    val ktDir = File(installOptions.installationPath, "kt")
+
+    FileUtils.mkdirsSafely("kt")
+
+    FileUtils.extractResource("/install.kts", ktDir, this)
+
+    File(ktDir, "install.kts").reader().use { reader ->
+      val dsl = kotlinEngine.eval(reader) as InstallDSLBuilder<T>
+      println(dsl.config)
+      dsl
+    }
+  }
+
+  fun getInstalledVersion(): Version? {
+    val updateScript = dsl.scripts.firstOrNull { it is UpdateScriptDSLBuilder } ?: return null
+
+    return runBlocking {
+       Version.parse(
+        "${updateScript.id} --version".exec(2000).toString()
+      )
+    }
+  }
+
+  fun setActiveConfig(environment: String, options: HoneyMouthOptions<T>) {
+    installOptions = options
+    dsl.config.setActiveConfig(environment)
+  }
+
+  fun getActiveConfig(): T = dsl.config.getActiveConfig()
 }
-
-
-//    engineManager.engineFactories.forEach {
-//      println(it.engineName + " " + it.names)
-//    }

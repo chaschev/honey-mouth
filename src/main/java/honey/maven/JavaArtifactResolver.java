@@ -16,12 +16,21 @@ public class JavaArtifactResolver implements MavenMetadataResolver{
     this.repos = repos;
   }
 
-  public void resolveAll(File cacheFolder, List<String> arts) {
+  public Map<String, File> resolveAll(File cacheFolder, List<String> arts) {
+    Map<String, File> map = new HashMap<>();
+
     for (String art : arts) {
-      if (resolve(art, cacheFolder) == null) {
+      final ResolveResult r = resolve(art, cacheFolder);
+
+      if (r == null) {
         throw new RuntimeException("couldn't resolve " + art);
       }
+
+
+      map.put(art, r.jarFile);
     }
+
+    return map;
   }
 
   public JavaArtifactResolver setForceUpdate(boolean forceUpdate) {

@@ -1,36 +1,135 @@
 package honey.install;
 
 import honey.maven.JavaArtifactResolver;
+import honey.maven.JavaDumbMavenRepo;
 import honey.maven.MavenRepo;
+import honey.maven.ResolveResult;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.io.InputStream;
-import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 // ok todo MavenMetadata, MavenMetadataParser, MavenMetadataResolver (I)
-//todo download the latest/specified version honey:badger:[version-optional]
-//todo read resources from the downloaded jar
-//todo go on with the old version
+// ok todo download the latest/specified version honey:badger:[version-optional]
+// ok todo read resources from the downloaded jar
+// ok todo go on with the old version
 //todo make sure this folder is used as an installation folder only, required libraries are copied into the app folder, so we don't have to delete old jars
 public class Installer {
   public static final String MAVEN_CENTRAL = "http://central.maven.org/maven2";
 
-  public static final String MY_JAR = "build/libs/honey-mouth-0.0.1-SNAPSHOT.jar";
-  private String art;
-  private String repo;
+  public static final String MY_JAR = "build/libs/honey-mouth-0.1.0-SNAPSHOT.jar";
 
-  public Installer(String art, String repo) {
-    this.art = art;
-    this.repo = repo;
+  private File miniRepoDir = new File("mini-repo");
+
+  private File myJar;
+
+  private ModuleDependencies deps = null;
+
+  public Installer() {
+  }
+
+  public void downloadAndInstall(String art, @Nullable String repo) {
+    if(repo == null) repo = MAVEN_CENTRAL;
+
+    ResolveResult resolveResult = downloadJar(art, repo);
+
+    myJar = resolveResult.jarFile;
+
+    resolveAll();
+  }
+
+  public MavenMetadata getMetadata(String art, String repo) {
+    return new JavaArtifactResolver(Collections.singletonList(
+      new JavaDumbMavenRepo(repo)
+    )).resolveMetadata(art);
+  }
+
+  private ResolveResult downloadJar(String art, String repo) {
+    JavaArtifactResolver resolver = new JavaArtifactResolver(Collections.singletonList(
+      new JavaDumbMavenRepo(repo)
+    ));
+
+    resolver.setForceUpdate(true);
+
+    int c = 0;
+
+    //stupid java
+    for(int i = 0; i < art.length();i++) if(art.charAt(i) == ':') c++;
+
+    if(c == 1) {
+      final MavenMetadata metadata = resolver.resolveMetadata(art);
+
+      if(metadata == null) {
+        throw new RuntimeException("couldn't find metadata for " + art + ". You can specify version directly");
+      } else {
+        System.out.println("latest version for " + art + " is " + metadata.release);
+      }
+
+      art = art + ":" + metadata.release;
+    }
+
+    return resolver.resolve(art, miniRepoDir);
   }
 
   public static void main(String[] args) throws Exception {
-    new Installer().install();
 
-    final File myJar = getMyJar(Installer.class, MY_JAR);
-    final String classpath = (myJar.isDirectory() ? myJar.getPath() : myJar.getName()) + ":lib/*";
+    new Installer().runAppInstaller(args);
+  }
+
+  private void runAppInstaller(String[] args) throws Exception {
+
+    String art, repo;
+
+    if(args.length == 0) {
+      System.out.println("getting the artifact from jar");
+      ModuleDependencies deps = new ModuleDependencies(
+      StupidJavaResources.getMyJar(this.getClass(), MY_JAR));
+
+      art = deps.me;
+      repo = deps.myRepo.root();
+    } else {
+      art = args[0];
+      repo = args[1];
+    }
+
+    // first, download main jar
+
+    downloadAndInstall(art, repo);
+
+    // then, resolve all dependencies
+
+    final Map<String, File> resolvedDeps = resolveAll();
+
+    String installationPath;
+
+    {
+      String temp = System.getenv("INSTALLATION_PATH");
+
+      if(temp == null) temp = ".";
+
+      installationPath = temp;
+    }
+
+    File installationDir = new File(installationPath);
+    File libDir = new File(installationDir, "lib");
+
+    libDir.mkdirs();
+
+    // copy all dependencies into the lib dir
+
+    for (File file : libDir.listFiles()) {
+      file.delete();
+    }
+
+    for (File file : resolvedDeps.values()) {
+      Files.copy(file.toPath(), new File(libDir, file.getName()).toPath());
+    }
+
+    final String classpath =  libDir.getAbsolutePath()+"/*";
 
     System.out.println("Using classpath: " + classpath);
 
@@ -60,18 +159,13 @@ public class Installer {
     }
   }
 
-  private File destDir = new File(".");
 
-  private ModuleDependencies deps = null;
+  public Map<String, File> resolveAll() {return _install(false);}
 
-  public void install() {_install(false);}
+  public Map<String, File> update(boolean forceUpdate) {return _install(forceUpdate);}
 
-  public void update(boolean forceUpdate) {_install(forceUpdate);}
-
-  private void _install(boolean forceUpdate) {
-    File libDir = new File(destDir,"lib");
-
-    libDir.mkdirs();
+  private Map<String, File> _install(boolean forceUpdate) {
+    miniRepoDir.mkdirs();
 
 //    May be next time will have his complexity
 //    System.out.println("downloading runtime libraries...");
@@ -89,54 +183,25 @@ public class Installer {
     System.out.println("resolving " + depStrings + " artifacts in " + repoList.size() +
       " repositories...");
 
-    new JavaArtifactResolver(repoList)
+    return new JavaArtifactResolver(repoList)
       .setForceUpdate(forceUpdate)
-      .resolveAll(libDir, depStrings);
-  }
-
-  public static File getMyJar(Class<?> aClass, String fallbackJarPath) {
-    try {
-      File file = new File(aClass.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
-
-      if(file.isDirectory()) {
-        file = new File(fallbackJarPath);
-
-        if(!file.exists() || file.isDirectory() || !file.getName().endsWith(".jar")) throw new RuntimeException("can't find my jar. you need to specify fallback jar for dev purposes");
-      }
-
-      return file;
-    } catch (URISyntaxException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static String streamToString(InputStream is) {
-    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-    return s.hasNext() ? s.next() : "";
-  }
-
-  public static String readResource(Class<?> aClass, String resourcePath) {
-    try {
-      final InputStream stream = aClass.getResourceAsStream(resourcePath);
-
-      if(stream == null) return null;
-
-      return streamToString(stream);
-    } catch (Exception e) {
-      return null;
-    }
+      .resolveAll(miniRepoDir, depStrings);
   }
 
   public synchronized ModuleDependencies getDeps() {
     if(deps == null) {
-      deps = new ModuleDependencies(resourcesClass);
+      if(myJar == null) {
+        throw new RuntimeException("you need to set myJar to get dependencies");
+      }
+      deps = new ModuleDependencies(myJar);
     }
     return deps;
   }
 
+
   @NotNull
-  public Installer setDestDir(File dir) {
-    destDir = dir;
+  public Installer setMiniRepoDir(File dir) {
+    miniRepoDir = dir;
     return this;
   }
 

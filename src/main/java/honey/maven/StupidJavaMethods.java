@@ -80,7 +80,7 @@ public class StupidJavaMethods {
 
       throw new RuntimeException(e);
     } finally {
-      System.out.println(message);
+//      System.out.println(message);
     }
   }
 
@@ -90,5 +90,10 @@ public class StupidJavaMethods {
     while ((len = in.read(buffer)) > 0) {
       out.write(buffer, 0, len);
     }
+  }
+
+  public static String streamToString(InputStream is) {
+    java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+    return s.hasNext() ? s.next() : "";
   }
 }

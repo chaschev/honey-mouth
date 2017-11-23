@@ -20,7 +20,7 @@ public class MavenMetadataParser {
       versions.add(version);
     }
 
-    Date lastUpdated = new Date(Integer.parseInt(getValue(xml, "lastUpdated", pos[0], pos)));
+    Date lastUpdated = new Date(Long.parseLong(getValue(xml, "lastUpdated", pos[0], pos)));
 
     return new MavenMetadata(release, versions, lastUpdated);
   }
@@ -35,6 +35,6 @@ public class MavenMetadataParser {
 
     newPos[0] = indexOfEnding + tag.length() + 3;
 
-    return xml.substring(indexOfOpening + "<release>".length(), indexOfEnding);
+    return xml.substring(indexOfOpening + tag.length() + 2, indexOfEnding);
   }
 }

@@ -1,5 +1,6 @@
 package honey.config
 
+import mu.KLogging
 import java.net.NetworkInterface
 import java.util.*
 
@@ -11,11 +12,16 @@ data class StoredConfig<T : AppConfig>(
   val buildTime: Date,
   val team: String,
   val configs: List<T>
-
 ) {
 
-  fun tryGetMyConfig(): T?{
+  private lateinit var activeConfig: T
+
+  fun getActiveConfig(): T = activeConfig
+
+  fun getMyConfigFromHosts(): T? {
     val myIps = getMyAddresses()
+
+    logger.debug {"my ips: $myIps"}
 
     return configs.find { config ->
       (null != if (config !is Hosts) {
@@ -23,12 +29,28 @@ data class StoredConfig<T : AppConfig>(
       } else {
         val hosts = config.getAllHosts()
 
-        myIps.find { hosts.contains(it) }
+        myIps.find {
+          val r = hosts.contains(it)
+          if(r) logger.debug { "matched ip: $it" }
+          r
+        }
       })
     }
   }
 
-  companion object {
+  fun setActiveConfig(fromEnvironment: String) {
+    val config = (if(fromEnvironment != "auto") {
+      configs.find { it.name == fromEnvironment }
+    } else {
+      getMyConfigFromHosts()
+    }) ?: throw Exception("couldn't determine active config from hosts or environment is not set")
+
+
+    println("using config: ${config.name}")
+    activeConfig = config
+  }
+
+  companion object : KLogging() {
       fun getMyAddresses(): List<String> {
         val interfaces = NetworkInterface.getNetworkInterfaces().asSequence()
 

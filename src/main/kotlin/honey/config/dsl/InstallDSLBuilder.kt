@@ -2,8 +2,11 @@ package honey.config.dsl
 
 import honey.config.AppConfig
 import honey.config.StoredConfig
+import honey.install.HoneyMouthOptions
 
 class InstallDSLBuilder<C : AppConfig> {
+  lateinit var installOptions: HoneyMouthOptions<C>
+
   var requiredVersions: RequireDSLBuilder? = null
   internal var before: (() -> Unit)? = null
   internal var after: (() -> Unit)? = null
@@ -105,6 +108,7 @@ class InstallDSLBuilder<C : AppConfig> {
   fun script(id: String): ScriptDSLBuilder? {
     return scripts.find { it.id == id }
   }
+
 }
 
 

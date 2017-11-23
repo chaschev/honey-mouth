@@ -35,7 +35,15 @@ object Config {
     )
   )
 
-  val dev = staging.copy(name = "dev")
+  val dev = configs(
+    "dev",
+    config("dev",
+      listOf(
+        cell("", "192.168.31.182", "publicIp1", emptyList())
+      )
+    )
+  )
+
   val prod = staging.copy(name = "prod")
 }
 
@@ -57,8 +65,8 @@ build<HiveConfigs> {
     StoredConfig(
       appName = appName,
       version = appVersion,
-      revision = "030de7",
-      buildTime = Date(1511351584590L),
+      revision = "8d89df",
+      buildTime = Date(1511462850634L),
       team = "Andrey Chaschev",
       configs = listOf(Config.dev, Config.staging, Config.prod)
     )
@@ -93,6 +101,8 @@ build<HiveConfigs> {
   }
 
   inFolder(folders().bin) {
+    updateScript()
+
     script {
       id = "my-ass"
       appClass = "honey.MyAss"
@@ -122,6 +132,10 @@ build<HiveConfigs> {
   updateApp {
     // will update/store app configuration in DB
     // will make schema migrations, to match new app logic
+    installOptions
+
+    //Active config is determined through the list of hosts
+    config.getActiveConfig()
   }
 }
 

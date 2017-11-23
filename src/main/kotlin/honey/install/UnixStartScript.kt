@@ -7,7 +7,8 @@ class UnixStartScript(
   val defaultJvmOpts: String,
   val classpath: String,
   val appNameSystemProperty: String,
-  val mainClassName: String
+  val mainClassName: String,
+  val env: Map<String, String> = emptyMap()
 ) {
   fun script() = """
     #!/usr/bin/env sh
@@ -17,6 +18,11 @@ class UnixStartScript(
 ##  ${applicationName} start up script for UN*X
 ##
 ##############################################################################
+
+${env
+  .asSequence()
+  .joinToString("\n"){"${it.key}=\"${it.value}\""}
+}
 
 # Attempt to set APP_HOME
 # Resolve links: ${'$'}0 may be a link

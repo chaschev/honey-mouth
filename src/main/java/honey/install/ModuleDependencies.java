@@ -3,21 +3,22 @@ package honey.install;
 import honey.maven.JavaDumbMavenRepo;
 import honey.maven.MavenRepo;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class ModuleDependencies {
   public final String me;
-  public final JavaDumbMavenRepo myRepo;
+  public final MavenRepo myRepo;
   private final List<MavenRepo> repos = new ArrayList<>();
   private final List<String> dependencies = new ArrayList<>();
 
-  public ModuleDependencies(Class<?> aClass) {
-    String jarsString = Installer.readResource(aClass, "/jars");
+  public ModuleDependencies(File jar) {
+    String jarsString = StupidJavaResources.getText(jar, "/mySpecialPom");
 
     if(jarsString == null) {
-      throw new RuntimeException("couldn't read app classpath in /jars");
+      throw new RuntimeException("couldn't read app classpath in /mySpecialPom");
     }
 
     int meStartIndex = jarsString.indexOf("# Me");

@@ -19,6 +19,20 @@ class InFoldersDSLBuilder(
     return script
   }
 
+  fun updateScript(builder: (UpdateScriptDSLBuilder.() -> Unit)? = null): UpdateScriptDSLBuilder {
+    val temp = UpdateScriptDSLBuilder(folderPath, parent)
+
+    if(builder == null) {
+      return temp
+    }
+
+    val script = temp.apply(builder).build()
+
+    parent.scripts.add(script)
+
+    return script
+  }
+
   fun linkAllScripts() {
     linkAllScripts = true
   }
