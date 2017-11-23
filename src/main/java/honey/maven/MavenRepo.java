@@ -5,6 +5,8 @@ public interface MavenRepo {
 
     String resolveUrl(String group, String module, String version);
 
+    String metadataUrl(String group, String module);
+
     default String file(String module, String version) {
         return module + "-" + version;
     }

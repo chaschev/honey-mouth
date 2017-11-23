@@ -1,21 +1,14 @@
 package honey.maven;
 
-import org.jetbrains.annotations.NotNull;
+import honey.install.MavenMetadata;
+import honey.install.MavenMetadataParser;
+import honey.install.MavenMetadataResolver;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.channels.Channels;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
+import java.io.*;
 import java.util.*;
 
-public class JavaArtifactResolver {
+public class JavaArtifactResolver implements MavenMetadataResolver{
   protected List<MavenRepo> repos;
   protected boolean forceUpdate = false;
 
@@ -36,6 +29,7 @@ public class JavaArtifactResolver {
     return this;
   }
 
+
   @Nullable
   public ResolveResult resolve(String art, File cacheFolder) {
     String group, module, version;
@@ -55,7 +49,7 @@ public class JavaArtifactResolver {
       File sha1File = new File(cacheFolder, file + ".jar.sha1");
 
       if(forceUpdate) {
-        downloadJavaWay(url + ".jar.sha1", sha1File);
+        StupidJavaMethods.downloadJavaWay(url + ".jar.sha1", sha1File);
       }
 
       ResolveResult result = new ResolveResult(jarFile, sha1File);
@@ -67,9 +61,9 @@ public class JavaArtifactResolver {
       String sha1;
 
       try {
-        downloadJavaWay(url + ".jar.sha1", sha1File);
+        StupidJavaMethods.downloadJavaWay(url + ".jar.sha1", sha1File);
 
-        String line = readFile(sha1File.toPath()).trim();
+        String line = StupidJavaMethods.readFile(sha1File.toPath()).trim();
         int indexOfSpace = line.indexOf(" ");
 
         sha1 = indexOfSpace == -1 ? line : line.substring(0, indexOfSpace);
@@ -83,9 +77,9 @@ public class JavaArtifactResolver {
         try {
           System.out.printf("GET %s.jar... ", url);
 
-          downloadJavaWay(url + ".jar", jarFile);
+          StupidJavaMethods.downloadJavaWay(url + ".jar", jarFile);
 
-          String actualSha1 = getSha1(jarFile.toPath());
+          String actualSha1 = StupidJavaMethods.getSha1(jarFile.toPath());
 
           if (!Objects.equals(sha1, actualSha1)) {
             System.out.println("downloaded a file, and sha1 didn't match: " + actualSha1 + " (actual) vs " + sha1 + " (expected)");
@@ -108,8 +102,8 @@ public class JavaArtifactResolver {
     ResolveResult cached;
 
     if (sha1File.exists() && jarFile.exists()) {
-      String sha1 = readFile(sha1File.toPath());
-      String actualSha1 = getSha1(jarFile.toPath());
+      String sha1 = StupidJavaMethods.readFile(sha1File.toPath());
+      String actualSha1 = StupidJavaMethods.getSha1(jarFile.toPath());
 
       if (!sha1.equals(actualSha1)) {
         System.out.printf("downloaded a file, and sha1 didn't match: %s (actual) vs %s (expected)%n", actualSha1, sha1);
@@ -135,63 +129,24 @@ public class JavaArtifactResolver {
     System.out.println("downloading runtime libraries...");
   }
 
-  @NotNull
-  public static String readFile(Path path) {
-    try {
-      byte[] encoded = Files.readAllBytes(path);
+  @Override
+  public MavenMetadata resolveMetadata(String art) {
+    String group, module;
 
-      return new String(encoded);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+    {
+      String[] r = art.split(":");
+      group = r[0];
+      module = r[1];
     }
-  }
 
-  private static String getSha1(Path path) {
-    try {
-      MessageDigest digest = MessageDigest.getInstance("SHA-1");
-      digest.reset();
-      digest.update(Files.readAllBytes(path));
-
-      return byteToHex(digest.digest());
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private static String byteToHex(final byte[] hash) {
-    try (Formatter formatter = new Formatter()) {
-      for (byte b : hash) {
-        formatter.format("%02x", b);
+    for (MavenRepo repo : repos) {
+      try {
+        String xml =  StupidJavaMethods.downloadAsString(repo.metadataUrl(group, module));
+        return new MavenMetadataParser().parse(xml);
+      } catch (Exception e) {
+        //ignore
       }
-
-      return formatter.toString();
-    }
-  }
-
-  void downloadJavaWay(String url, File dest) {
-//        System.out.printf("GET %s  ", url);
-
-    URL webUrl = null;
-
-    //ok java
-    try {
-      webUrl = new URL(url);
-    } catch (MalformedURLException e) {
-      throw new RuntimeException(e);
     }
 
-    String message = "ok";
-
-    try (ReadableByteChannel rbc = Channels.newChannel(webUrl.openStream());
-         FileOutputStream fos = new FileOutputStream(dest)) {
-
-      fos.getChannel().transferFrom(rbc, 0, java.lang.Long.MAX_VALUE);
-    } catch (IOException e) {
-      message = "error: " + e.toString();
-
-      throw new RuntimeException(e);
-    } finally {
-            System.out.println(message);
-    }
-  }
+    return null;  }
 }

@@ -1,28 +1,36 @@
 package honey.install;
 
-import honey.maven.JavaDumbMavenRepo;
 import honey.maven.JavaArtifactResolver;
+import honey.maven.MavenRepo;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.List;
 
+// ok todo MavenMetadata, MavenMetadataParser, MavenMetadataResolver (I)
+//todo download the latest/specified version honey:badger:[version-optional]
+//todo read resources from the downloaded jar
+//todo go on with the old version
+//todo make sure this folder is used as an installation folder only, required libraries are copied into the app folder, so we don't have to delete old jars
 public class Installer {
-
   public static final String MAVEN_CENTRAL = "http://central.maven.org/maven2";
 
   public static final String MY_JAR = "build/libs/honey-mouth-0.0.1-SNAPSHOT.jar";
+  private String art;
+  private String repo;
+
+  public Installer(String art, String repo) {
+    this.art = art;
+    this.repo = repo;
+  }
 
   public static void main(String[] args) throws Exception {
-    String[] artifacts = {
-      "jline:jline:2.14.5",
-      "org.jetbrains.kotlin:kotlin-stdlib:1.2.0-rc-39"
-    };
+    new Installer().install();
 
-    new Installer().install(artifacts);
-
-    final File mySource = getMyJar(Installer.class, MY_JAR);
-    final String classpath = (mySource.isDirectory() ? mySource.getPath() : mySource.getName()) + ":lib/*";
+    final File myJar = getMyJar(Installer.class, MY_JAR);
+    final String classpath = (myJar.isDirectory() ? myJar.getPath() : myJar.getName()) + ":lib/*";
 
     System.out.println("Using classpath: " + classpath);
 
@@ -52,44 +60,38 @@ public class Installer {
     }
   }
 
-  public void install(String[] artifacts) {
-    File libDir = new File("lib");
+  private File destDir = new File(".");
 
-    libDir.mkdir();
+  private ModuleDependencies deps = null;
 
-    System.out.println("downloading runtime libraries...");
+  public void install() {_install(false);}
 
-    new JavaArtifactResolver(
-      new JavaDumbMavenRepo("http://dl.bintray.com/kotlin/kotlin-eap-1.2"),
-      new JavaDumbMavenRepo(MAVEN_CENTRAL)
-    ).resolveAll(libDir, artifacts);
+  public void update(boolean forceUpdate) {_install(forceUpdate);}
 
-    //this
+  private void _install(boolean forceUpdate) {
+    File libDir = new File(destDir,"lib");
+
+    libDir.mkdirs();
+
+//    May be next time will have his complexity
+//    System.out.println("downloading runtime libraries...");
+//
+//    new JavaArtifactResolver(Arrays.asList(
+//      new JavaDumbMavenRepo("http://dl.bintray.com/kotlin/kotlin-eap-1.2"),
+//      new JavaDumbMavenRepo(MAVEN_CENTRAL))
+//    ).resolveAll(libDir, Arrays.asList(artifacts));
+
     System.out.println("downloading app libraries...");
 
-    String jarsString = readResource(this.getClass(), "/jars");
+    final List<String> depStrings = getDeps().getDependencies(true);
+    final List<MavenRepo> repoList = getDeps().getRepos(true);
 
-    if(jarsString == null) {
-      throw new RuntimeException("couldn't read app classpath in /jars");
-    }
+    System.out.println("resolving " + depStrings + " artifacts in " + repoList.size() +
+      " repositories...");
 
-    int reposStartIndex = jarsString.indexOf("# Repos");
-    int artsStartIndex = jarsString.indexOf("# Artifacts");
-
-    String[] reposUrls = jarsString.substring(reposStartIndex + "# Repos".length()).trim().split("\n");
-    String[] arts = jarsString.substring(artsStartIndex + "# Artifacts".length()).trim().split("\n");
-
-    JavaDumbMavenRepo[] repos = new JavaDumbMavenRepo[reposUrls.length + 1];
-
-    repos[0] = new JavaDumbMavenRepo(MAVEN_CENTRAL);
-
-    for (int i = 0; i < reposUrls.length; i++) {
-      repos[i + 1] = new JavaDumbMavenRepo(reposUrls[i]);
-    }
-
-    System.out.println("resolving " + arts.length + " artifacts...");
-
-    new JavaArtifactResolver(repos).resolveAll(libDir, arts);
+    new JavaArtifactResolver(repoList)
+      .setForceUpdate(forceUpdate)
+      .resolveAll(libDir, depStrings);
   }
 
   public static File getMyJar(Class<?> aClass, String fallbackJarPath) {
@@ -124,4 +126,19 @@ public class Installer {
       return null;
     }
   }
+
+  public synchronized ModuleDependencies getDeps() {
+    if(deps == null) {
+      deps = new ModuleDependencies(resourcesClass);
+    }
+    return deps;
+  }
+
+  @NotNull
+  public Installer setDestDir(File dir) {
+    destDir = dir;
+    return this;
+  }
+
+  public String getVersion() {return getDeps().me.split(":")[2];}
 }

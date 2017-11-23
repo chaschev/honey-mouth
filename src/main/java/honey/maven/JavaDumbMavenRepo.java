@@ -16,4 +16,9 @@ public class JavaDumbMavenRepo implements MavenRepo {
     public String resolveUrl(String group, String module, String version) {
         return root + "/" + group.replace('.', '/') + "/" + module + "/" + version + "/" + file(module, version);
     }
+
+    @Override
+    public String metadataUrl(String group, String module) {
+        return root + "/" + group.replace('.', '/') + "/" + module + "/maven-metadata.xml";
+    }
 }
