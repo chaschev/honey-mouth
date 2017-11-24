@@ -28,8 +28,8 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
 
   val updateLibs by parser.flagging("--update-libs", help = "force download JARs").default(false)
 
-  val installVersion by parser.storing("--install-version", help = "Specify the version to install")
-    .default("latest")
+  val installVersion by parser.storing("--install-version", help = "Specify the version to install. Additional values: latest, jar")
+    .default("jar")
 
   val environment by parser.storing("--environment", help = "Explicitly specify the environment. Normally, it should be loaded from hosts").default("auto")
 
@@ -96,28 +96,49 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
       installer
     )
 
+    installer.init(options)
+    // here, newVersion requires to determine our jar
+
     if (mode == InstallMode.update) {
       if (options.oldVersion == null) {
         println("couldn't find previously installed version")
         return 1
       }
 
-      if (!force && installVersion == options.newVersion) {
-        println("already at version ${options.newVersion}. use --force to force update or --update-libs to force update jars")
-        return 2
-      }
-
       if (force) options = options.copy(updateJars = true)
     }
 
-    if (options.updateJars) {
+    if (options.installMode == InstallMode.update) {
+      val (art, repo) = getArtifactAndRepo()
+
+      val downloadVersion =
+        when (installVersion) {
+          "jar" -> null
+          "latest" -> Installer().getMetadata(art, repo).release
+          else -> installVersion
+        }
+
+      val downloadArt = art.substringBeforeLast(':') + ":" + downloadVersion
+
       println("force updating jars...")
-      javaInstaller
-        .setMiniRepoDir(File(options.installationPath))
-        .update(true)
+
+      if(installVersion == "jar"){
+        javaInstaller
+          .setMyJar(StupidJavaResources.getMyJar(resourcesClass, Installer.MY_JAR))
+          .setMiniRepoDir(File(options.installationPath))
+          .resolveAll(options.updateJars)
+
+      }else {
+        javaInstaller
+          .setMiniRepoDir(File(options.installationPath))
+          .downloadAndInstall(downloadArt, repo, options.updateJars)
+      }
+
+
+      return 0
     }
 
-    installer.setActiveConfig(environment, options)
+    installer.setActiveConfig(environment)
 
     return installer.install(options)
 
@@ -141,9 +162,6 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
     run new jar
      check the version and follow with full dsl installation
 */
-
-
-    return 0
   }
 
   private fun getArtifactAndRepo(): Pair<String, String> {
@@ -163,9 +181,8 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
     } else {
       repository
     }
+
     return Pair(art, repo)
   }
-
-
 }
 

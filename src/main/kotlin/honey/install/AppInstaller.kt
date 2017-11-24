@@ -96,7 +96,6 @@ class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
    */
   fun install(options: HoneyMouthOptions<T>): Int {
     dsl.installOptions = options
-    this.installOptions = options
 
     dsl.requiredVersions?.verify()
 
@@ -113,7 +112,7 @@ class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
 
       println("moving ${libs?.size ?: 0} libs..")
 
-      require(libs?.isNotEmpty() == true, {"$libDir/ folder must not be empty!"})
+      require(libs?.isNotEmpty() == true, {"$libDir/ folder must not be empty! Make sure you ran installer before or use --update-libs flat"})
 
       dsl.folders.lib.file.listFiles().forEach { it.delete() }
 
@@ -143,18 +142,15 @@ class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
     return 0
   }
 
+
   val dsl: InstallDSLBuilder<T> by lazy   {
-    val ktDir = File(installOptions.installationPath, "kt")
+    val installScript =  StupidJavaResources.readResource(this::class.java, "/install.kts")
 
-    FileUtils.mkdirsSafely("kt")
+    println("wait a sec. evaluating install script, it is a little slow today...")
 
-    FileUtils.extractResource("/install.kts", ktDir, this)
-
-    File(ktDir, "install.kts").reader().use { reader ->
-      val dsl = kotlinEngine.eval(reader) as InstallDSLBuilder<T>
-      println(dsl.config)
-      dsl
-    }
+    val dsl = kotlinEngine.eval(installScript) as InstallDSLBuilder<T>
+    println(dsl.config)
+    dsl
   }
 
   fun getInstalledVersion(): Version? {
@@ -167,10 +163,13 @@ class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
     }
   }
 
-  fun setActiveConfig(environment: String, options: HoneyMouthOptions<T>) {
-    installOptions = options
+  fun setActiveConfig(environment: String) {
     dsl.config.setActiveConfig(environment)
   }
 
   fun getActiveConfig(): T = dsl.config.getActiveConfig()
+
+  fun init(options: HoneyMouthOptions<T>) {
+    this.installOptions = options
+  }
 }

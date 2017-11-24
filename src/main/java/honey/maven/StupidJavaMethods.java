@@ -22,6 +22,15 @@ public class StupidJavaMethods {
     }
   }
 
+  @NotNull
+  public static void writeFile(File file, String value) {
+    try {
+      Files.write(file.toPath(), value.getBytes());
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public static String getSha1(Path path) {
     try {
       MessageDigest digest = MessageDigest.getInstance("SHA-1");

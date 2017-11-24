@@ -3,6 +3,7 @@ package honey.maven;
 import honey.install.MavenMetadata;
 import honey.install.MavenMetadataParser;
 import honey.install.MavenMetadataResolver;
+import honey.install.StupidJavaResources;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
@@ -58,7 +59,12 @@ public class JavaArtifactResolver implements MavenMetadataResolver{
       File sha1File = new File(cacheFolder, file + ".jar.sha1");
 
       if(forceUpdate) {
-        StupidJavaMethods.downloadJavaWay(url + ".jar.sha1", sha1File);
+        try {
+          String sha1 = StupidJavaMethods.downloadAsString(url + ".jar.sha1");
+          StupidJavaMethods.writeFile(sha1File, sha1);
+        } catch (Exception e) {
+          continue;
+        }
       }
 
       ResolveResult result = new ResolveResult(jarFile, sha1File);

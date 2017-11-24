@@ -28,8 +28,7 @@ public class ModuleDependencies {
 
     me = jarsString.substring(meStartIndex + "# Me".length()).trim().split("\n")[0];
     myRepo = new JavaDumbMavenRepo(jarsString.substring(myRepoStartIndex + "# My Repo".length()).trim().split("\n")[0]);
-    String[] reposUrls = jarsString.substring(reposStartIndex + "# Repos".length()).trim().split("\n");
-
+    String[] reposUrls = jarsString.substring(reposStartIndex + "# Repos".length(), artsStartIndex).trim().split("\n");
 
     final String[] tempDeps = jarsString.substring(artsStartIndex + "# Artifacts".length()).trim().split("\n");
 

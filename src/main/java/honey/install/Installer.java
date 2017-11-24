@@ -32,14 +32,14 @@ public class Installer {
   public Installer() {
   }
 
-  public void downloadAndInstall(String art, @Nullable String repo) {
+  public void downloadAndInstall(String art, @Nullable String repo, boolean forceUpdate) {
     if(repo == null) repo = MAVEN_CENTRAL;
 
     ResolveResult resolveResult = downloadJar(art, repo);
 
     myJar = resolveResult.jarFile;
 
-    resolveAll();
+    resolveAll(forceUpdate);
   }
 
   public MavenMetadata getMetadata(String art, String repo) {
@@ -98,11 +98,11 @@ public class Installer {
 
     // first, download main jar
 
-    downloadAndInstall(art, repo);
+    downloadAndInstall(art, repo, false);
 
     // then, resolve all dependencies
 
-    final Map<String, File> resolvedDeps = resolveAll();
+    final Map<String, File> resolvedDeps = resolveAll(false);
 
     String installationPath;
 
@@ -160,9 +160,11 @@ public class Installer {
   }
 
 
-  public Map<String, File> resolveAll() {return _install(false);}
+  /**
+   * @param forceUpdate is a little slower, but more precise. It will update sha1 for downloaded files.
+   */
+  public Map<String, File> resolveAll(boolean forceUpdate) {return _install(forceUpdate);}
 
-  public Map<String, File> update(boolean forceUpdate) {return _install(forceUpdate);}
 
   private Map<String, File> _install(boolean forceUpdate) {
     miniRepoDir.mkdirs();
@@ -180,7 +182,7 @@ public class Installer {
     final List<String> depStrings = getDeps().getDependencies(true);
     final List<MavenRepo> repoList = getDeps().getRepos(true);
 
-    System.out.println("resolving " + depStrings + " artifacts in " + repoList.size() +
+    System.out.println("resolving " + depStrings.size() + " artifacts in " + repoList.size() +
       " repositories...");
 
     return new JavaArtifactResolver(repoList)
@@ -206,4 +208,9 @@ public class Installer {
   }
 
   public String getVersion() {return getDeps().me.split(":")[2];}
+
+  public Installer setMyJar(File myJar) {
+    this.myJar = myJar;
+    return this;
+  }
 }

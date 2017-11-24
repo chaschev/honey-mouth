@@ -2,6 +2,8 @@ package honey.config.dsl
 
 import honey.install.AppInstaller
 import honey.install.UnixStartScript
+import honey.pack.Systemd
+import honey.pack.SystemdInstall
 import java.io.File
 
 class UpdateScriptDSLBuilder(
@@ -35,6 +37,8 @@ open class ScriptDSLBuilder(
   var args: String? = null
   var env: Map<String, String> = emptyMap()
 
+  var installService: Boolean = false
+
   // these are actually Java Options
   var options: Set<ScriptOption> = emptySet()
 
@@ -43,6 +47,8 @@ open class ScriptDSLBuilder(
   fun jvmOpts(): String = options.joinToString(" ") { it.asArgs() }
 
   fun file() = File(folderPath, id)
+
+  fun installService() {installService = true}
 
   suspend fun writeScript() {
     val scriptFile = file()
@@ -57,6 +63,20 @@ open class ScriptDSLBuilder(
         appClass,
         env
       ).script())
+
+    if(installService) {
+      val serviceFile = File("/etc/systemd/system/$id.service")
+
+      println("installing service to $serviceFile")
+
+      serviceFile.writeText(
+        SystemdInstall("$id service",
+          exec = scriptFile.absolutePath).write()
+      )
+
+      println("starting service...")
+      Systemd.start(id)
+    }
 
     Rights.executableAll.apply(scriptFile)
   }
