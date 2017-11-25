@@ -62,23 +62,22 @@ Don't need a tool like npm, there is Gradle. Though Gradle doesn't provide API f
 */
 
 
-class AppInstaller<T: AppConfig>(
+class AppInstaller<T : AppConfig>(
   val configClass: Class<T>,
   val dsl: InstallDSLBuilder<T>,
-  internal val installOptions: HoneyMouthOptions<T>,
-  val devJarPath: String? = null
+  internal val installOptions: HoneyMouthOptions<T>
 ) {
 
   init {
     installOptions.installer = this
   }
 
-
   fun run(args: Array<String>): Int {
     val parser = ArgParser(args, helpFormatter = helpFormatter)
 
     return HoneyMouthArgs(parser, configClass).run()
   }
+
   /**
    * At this stage we have all required JARs in our classpath.
    *
@@ -88,7 +87,6 @@ class AppInstaller<T: AppConfig>(
    * Run the release script.
    */
   fun install(options: HoneyMouthOptions<T>): Int {
-
     dsl.requiredVersions?.verify()
 
     dsl.before?.invoke()
@@ -104,11 +102,11 @@ class AppInstaller<T: AppConfig>(
 
       println("moving ${libs?.size ?: 0} libs..")
 
-      require(libs?.isNotEmpty() == true, {"$libDir/ folder must not be empty! Make sure you ran installer before or use --update-libs flat"})
+      require(libs?.isNotEmpty() == true, { "$libDir/ folder must not be empty! Make sure you ran installer before or use --update-libs flat" })
 
       dsl.folders.lib.file.listFiles().forEach { it.delete() }
 
-      if(libDir.canonicalPath != dsl.folders.lib.file.canonicalPath) {
+      if (libDir.canonicalPath != dsl.folders.lib.file.canonicalPath) {
         for (file in libs!!) {
           Files.move(file.toPath(), File(dsl.folders.lib.path, file.name).toPath())
         }
@@ -119,7 +117,7 @@ class AppInstaller<T: AppConfig>(
       dsl.app?.extractResources()
 
       dsl.scripts.forEach { item ->
-       item.writeScript()
+        item.writeScript()
       }
     }
 
@@ -135,12 +133,11 @@ class AppInstaller<T: AppConfig>(
   }
 
 
-
   fun getInstalledVersion(): Version? {
     val updateScript = dsl.scripts.firstOrNull { it is UpdateScriptDSLBuilder } ?: return null
 
     return runBlocking {
-       Version.parse(
+      Version.parse(
         "${updateScript.id} --version".exec(2000).toString()
       )
     }
@@ -158,26 +155,34 @@ class AppInstaller<T: AppConfig>(
 
     @JvmStatic
     fun main(args: Array<String>) {
+      val options = HoneyMouthOptions<HiveConfig>(InstallMode.update, false)
+
       val r = AppInstaller(
         configClass = HiveConfig::class.java,
-        dsl = AppInstaller.dsl(HiveConfig::class.java, "dev"),
-        installOptions = HoneyMouthOptions(InstallMode.update, false)
+        dsl = AppInstaller.dsl(HiveConfig::class.java, options, "dev"),
+        installOptions = options
       ).run(args)
 
       System.exit(r)
     }
 
-    fun <T: AppConfig>dsl(aClass: Class<T>, environment: String): InstallDSLBuilder<T> {
+    fun <T : AppConfig> dsl(
+      aClass: Class<T>,
+      options: HoneyMouthOptions<T> = HoneyMouthOptions(),
+      environment: String = "auto"): InstallDSLBuilder<T> {
+
       return dslMap.getOrPut(aClass, {
-        val installScript =  StupidJavaResources.readResource(this::class.java, "/install.kts")
+        val installScript = StupidJavaResources.readResource(this::class.java, "/install.kts")
 
         println("wait a sec. evaluating install script, it is a little slow today...")
 
-        val dsl = kotlinEngine.eval(installScript) as InstallDSLBuilder<*>
+        val dslLambda = kotlinEngine.eval(installScript) as ((env:String) -> InstallDSLBuilder<T>)
+
+        val dsl = dslLambda(environment)
 
         println("using config: " + dsl.config)
 
-        dsl.config.setActiveConfig(environment)
+        dsl.useOptions(options)
 
         dsl
       }) as InstallDSLBuilder<T>

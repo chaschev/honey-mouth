@@ -4,10 +4,11 @@ import honey.config.AppConfig
 import honey.config.StoredConfig
 import honey.install.HoneyMouthOptions
 
-class InstallDSLBuilder<C : AppConfig> {
+class InstallDSLBuilder<C : AppConfig>(val environment: String = "auto") {
+
   lateinit var installOptions: HoneyMouthOptions<C>
 
-  var requiredVersions: RequireDSLBuilder? = null
+  internal var requiredVersions: RequireDSLBuilder? = null
   internal var before: (() -> Unit)? = null
   internal var after: (() -> Unit)? = null
   internal var updateApp: (() -> Unit)? = null
@@ -16,9 +17,9 @@ class InstallDSLBuilder<C : AppConfig> {
   internal lateinit var folders: FoldersDSL
   internal var inFolders: ArrayList<InFoldersDSLBuilder> = ArrayList()
 
-  var app: AppDSLBuilder<C>? = null
+  var app: AppDSLBuilder? = null
 
-  lateinit var config: StoredConfig<C>
+  internal lateinit var config: StoredConfig<C>
 
   val scripts = ArrayList<ScriptDSLBuilder>()
 
@@ -30,6 +31,7 @@ class InstallDSLBuilder<C : AppConfig> {
 
   fun config(block: () -> StoredConfig<C>) {
     config = block()
+    config.setActiveConfig(environment)
   }
 
   fun require(builder: RequireDSLBuilder.() -> Unit) {
@@ -68,8 +70,8 @@ class InstallDSLBuilder<C : AppConfig> {
 
   fun app() = app!!
 
-  fun app(builder: AppDSLBuilder<C>.() -> Unit) {
-    this.app = AppDSLBuilder(installOptions.installer).apply(builder)
+  fun app(builder: AppDSLBuilder.() -> Unit) {
+    this.app = AppDSLBuilder(installOptions.devJarPath).apply(builder)
   }
 
   fun folders() = folders
@@ -89,16 +91,29 @@ class InstallDSLBuilder<C : AppConfig> {
   fun inFolder(folder: Folder, builder: InFoldersDSLBuilder.() -> Unit)
     = inFolder(folder.path, builder)
 
-  companion object {
-    fun <C : AppConfig> build(builder: InstallDSLBuilder<C>.() -> Unit):
-      InstallDSLBuilder<C> =
-      InstallDSLBuilder<C>().apply(builder).build()
-  }
-
   fun script(id: String): ScriptDSLBuilder? {
     return scripts.find { it.id == id }
   }
 
+  fun useOptions(options: HoneyMouthOptions<C>): InstallDSLBuilder<C> {
+    installOptions = options
+    return this
+  }
+
+  fun getConfig(): C {
+    return config.getActiveConfig()
+  }
+
+  companion object {
+    fun <C : AppConfig> build(
+      environment: String = "auto",
+      builder: InstallDSLBuilder<C>.() -> Unit
+    ): InstallDSLBuilder<C> =
+      InstallDSLBuilder<C>(environment).apply(builder).build()
+  }
 }
 
+interface ReleaseDSL {
+  fun <C : AppConfig> build(environment: String? = "auto") : InstallDSLBuilder<C>
+}
 

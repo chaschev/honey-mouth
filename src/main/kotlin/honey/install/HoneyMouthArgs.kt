@@ -7,14 +7,15 @@ import honey.config.dsl.UpdateScriptDSLBuilder
 import java.io.File
 
 enum class InstallMode {
-  install, update
+  install, update, noInstall
 }
 
 data class HoneyMouthOptions<T : AppConfig>(
-  val installMode: InstallMode,
-  val updateJars: Boolean,
+  val installMode: InstallMode = InstallMode.noInstall,
+  val updateJars: Boolean = false,
   val installationPath: String = ".",
-  internal val javaInstaller: Installer? = null
+  internal val javaInstaller: Installer? = null,
+  val devJarPath: String? = null
 ) {
   lateinit var installer: AppInstaller<T>
 
@@ -95,7 +96,7 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
       javaInstaller
     )
 
-    val installer = AppInstaller(resourcesClass, AppInstaller.dsl(resourcesClass, environment),  options)
+    val installer = AppInstaller(resourcesClass, AppInstaller.dsl(resourcesClass, options, environment),  options)
 
     // here, newVersion requires to determine our jar
 
