@@ -13,7 +13,7 @@ import honey.config.example.HiveCellConfig as cell
 import honey.config.example.HiveConfig as config
 
 val appName = "honey-mouth"
-val appVersion = "0.1.0-SNAPSHOT"
+val appVersion = "0.1.0"
 
 object Config {
   val staging = config("conf1",
@@ -48,8 +48,8 @@ val lambda = { environment: String ->
       StoredConfig(
         appName = appName,
         version = appVersion,
-        revision = "8d89df",
-        buildTime = Date(1511462850634L),
+        revision = "69de53",
+        buildTime = Date(1511634752924L),
         team = "Andrey Chaschev",
         configs = listOf(Config.dev, Config.staging, Config.prod)
       )
