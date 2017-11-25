@@ -16,7 +16,7 @@ class InstallDSLBuilder<C : AppConfig> {
   internal lateinit var folders: FoldersDSL
   internal var inFolders: ArrayList<InFoldersDSLBuilder> = ArrayList()
 
-  var app: AppDSLBuilder? = null
+  var app: AppDSLBuilder<C>? = null
 
   lateinit var config: StoredConfig<C>
 
@@ -68,8 +68,8 @@ class InstallDSLBuilder<C : AppConfig> {
 
   fun app() = app!!
 
-  fun app(builder: AppDSLBuilder.() -> Unit) {
-    this.app = AppDSLBuilder().apply(builder)
+  fun app(builder: AppDSLBuilder<C>.() -> Unit) {
+    this.app = AppDSLBuilder(installOptions.installer).apply(builder)
   }
 
   fun folders() = folders
@@ -88,16 +88,6 @@ class InstallDSLBuilder<C : AppConfig> {
 
   fun inFolder(folder: Folder, builder: InFoldersDSLBuilder.() -> Unit)
     = inFolder(folder.path, builder)
-
-  fun sortInFoldersOut(list: List<ObjectWithFolder<*>>) {
-    list.forEach {
-      when (it) {
-//        is ScriptDSLBuilder -> scripts.add(it)
-//        is LinkDSLBuilder -> linkMakers.add(it)
-        else -> TODO()
-      }
-    }
-  }
 
   companion object {
     fun <C : AppConfig> build(builder: InstallDSLBuilder<C>.() -> Unit):

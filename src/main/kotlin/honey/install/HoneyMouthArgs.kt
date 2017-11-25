@@ -14,19 +14,21 @@ data class HoneyMouthOptions<T : AppConfig>(
   val installMode: InstallMode,
   val updateJars: Boolean,
   val installationPath: String = ".",
-  private val javaInstaller: Installer,
-  private val installer: AppInstaller<T>
+  internal val javaInstaller: Installer? = null
 ) {
+  lateinit var installer: AppInstaller<T>
+
   val oldVersion by lazy { installer.getInstalledVersion() }
-  val newVersion by lazy { javaInstaller.version }
+  val newVersion by lazy { javaInstaller!!.version }
 }
 
-internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resourcesClass: Class<*>) {
+internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resourcesClass: Class<T>) {
 
   val force by parser.flagging("--force",
     help = "force download JARs").default(false)
 
-  val updateLibs by parser.flagging("--update-libs", help = "force download JARs").default(false)
+  val updateLibs by parser.flagging("--update-libs", help = "force download JARs")
+    .default(false)
 
   val installVersion by parser.storing("--install-version", help = "Specify the version to install. Additional values: latest, jar")
     .default("jar")
@@ -86,17 +88,15 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
       return 0
     }
 
-    val installer = AppInstaller<T>(resourcesClass)
-
-    var options = HoneyMouthOptions(
+    val options = HoneyMouthOptions<T>(
       mode,
-      updateLibs,
+      updateLibs || (force && mode == InstallMode.update),
       System.getenv(UpdateScriptDSLBuilder.INSTALLATION_PATH) ?: ".",
-      javaInstaller,
-      installer
+      javaInstaller
     )
 
-    installer.init(options)
+    val installer = AppInstaller(resourcesClass, AppInstaller.dsl(resourcesClass, environment),  options)
+
     // here, newVersion requires to determine our jar
 
     if (mode == InstallMode.update) {
@@ -104,8 +104,6 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
         println("couldn't find previously installed version")
         return 1
       }
-
-      if (force) options = options.copy(updateJars = true)
     }
 
     if (options.installMode == InstallMode.update) {
@@ -134,11 +132,8 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
           .downloadAndInstall(downloadArt, repo, options.updateJars)
       }
 
-
       return 0
     }
-
-    installer.setActiveConfig(environment)
 
     return installer.install(options)
 

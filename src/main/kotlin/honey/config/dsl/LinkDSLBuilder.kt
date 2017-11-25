@@ -4,7 +4,6 @@ class LinkDSLBuilder(val parent: InstallDSLBuilder<*>) : ObjectWithFolder<LinkDS
   override lateinit var folderPath: String
 
   override fun build(): LinkDSLBuilder {
-    parent.sortInFoldersOut(listOf(this))
     return this
   }
 }

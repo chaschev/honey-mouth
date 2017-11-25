@@ -5,14 +5,12 @@ import com.xenomachina.argparser.DefaultHelpFormatter
 import honey.config.AppConfig
 import honey.config.dsl.InstallDSLBuilder
 import honey.config.dsl.UpdateScriptDSLBuilder
-import honey.config.example.HiveConfigs
+import honey.config.example.HiveConfig
 import honey.pack.Version
-import honey.util.FileUtils
-import honey.util.extractResource
-import honey.util.mkdirsSafely
 import kotlinx.coroutines.experimental.runBlocking
 import java.io.File
 import java.nio.file.Files
+import java.util.concurrent.ConcurrentHashMap
 import javax.script.ScriptEngineManager
 
 
@@ -64,27 +62,22 @@ Don't need a tool like npm, there is Gradle. Though Gradle doesn't provide API f
 */
 
 
-class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
-  val scriptEngineManager = ScriptEngineManager()
-  val kotlinEngine = scriptEngineManager.getEngineByExtension("kts")!!
+class AppInstaller<T: AppConfig>(
+  val configClass: Class<T>,
+  val dsl: InstallDSLBuilder<T>,
+  internal val installOptions: HoneyMouthOptions<T>,
+  val devJarPath: String? = null
+) {
 
-  private lateinit var installOptions: HoneyMouthOptions<T>
-
-  companion object {
-    val helpFormatter = DefaultHelpFormatter("prologue", "epilogue")
-
-    @JvmStatic
-    fun main(args: Array<String>) {
-      val r = AppInstaller<HiveConfigs>(AppInstaller::class.java).run(args)
-
-      System.exit(r)
-    }
+  init {
+    installOptions.installer = this
   }
+
 
   fun run(args: Array<String>): Int {
     val parser = ArgParser(args, helpFormatter = helpFormatter)
 
-    return HoneyMouthArgs<T>(parser, resourcesClass).run()
+    return HoneyMouthArgs(parser, configClass).run()
   }
   /**
    * At this stage we have all required JARs in our classpath.
@@ -95,7 +88,6 @@ class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
    * Run the release script.
    */
   fun install(options: HoneyMouthOptions<T>): Int {
-    dsl.installOptions = options
 
     dsl.requiredVersions?.verify()
 
@@ -143,15 +135,6 @@ class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
   }
 
 
-  val dsl: InstallDSLBuilder<T> by lazy   {
-    val installScript =  StupidJavaResources.readResource(this::class.java, "/install.kts")
-
-    println("wait a sec. evaluating install script, it is a little slow today...")
-
-    val dsl = kotlinEngine.eval(installScript) as InstallDSLBuilder<T>
-    println(dsl.config)
-    dsl
-  }
 
   fun getInstalledVersion(): Version? {
     val updateScript = dsl.scripts.firstOrNull { it is UpdateScriptDSLBuilder } ?: return null
@@ -163,13 +146,41 @@ class AppInstaller<T: AppConfig>(val resourcesClass: Class<*>) {
     }
   }
 
-  fun setActiveConfig(environment: String) {
-    dsl.config.setActiveConfig(environment)
-  }
-
   fun getActiveConfig(): T = dsl.config.getActiveConfig()
 
-  fun init(options: HoneyMouthOptions<T>) {
-    this.installOptions = options
+  companion object {
+    val scriptEngineManager = ScriptEngineManager()
+    val kotlinEngine = scriptEngineManager.getEngineByExtension("kts")!!
+
+    private val dslMap = ConcurrentHashMap<Class<*>, InstallDSLBuilder<*>>()
+
+    val helpFormatter = DefaultHelpFormatter("prologue", "epilogue")
+
+    @JvmStatic
+    fun main(args: Array<String>) {
+      val r = AppInstaller(
+        configClass = HiveConfig::class.java,
+        dsl = AppInstaller.dsl(HiveConfig::class.java, "dev"),
+        installOptions = HoneyMouthOptions(InstallMode.update, false)
+      ).run(args)
+
+      System.exit(r)
+    }
+
+    fun <T: AppConfig>dsl(aClass: Class<T>, environment: String): InstallDSLBuilder<T> {
+      return dslMap.getOrPut(aClass, {
+        val installScript =  StupidJavaResources.readResource(this::class.java, "/install.kts")
+
+        println("wait a sec. evaluating install script, it is a little slow today...")
+
+        val dsl = kotlinEngine.eval(installScript) as InstallDSLBuilder<*>
+
+        println("using config: " + dsl.config)
+
+        dsl.config.setActiveConfig(environment)
+
+        dsl
+      }) as InstallDSLBuilder<T>
+    }
   }
 }

@@ -6,12 +6,11 @@ import honey.config.dsl.Rights
 import honey.config.dsl.Rights.omit
 import honey.config.dsl.ScriptOption.jvmOpts
 import honey.config.dsl.ScriptOption.memory
-import honey.config.example.HiveConfigs
+import honey.config.example.HiveConfig
 import honey.pack.JavaVersion
 
 import java.util.Date
 
-import honey.config.example.HiveConfigs as configs
 import honey.config.example.HiveConfig as config
 import honey.config.example.HiveCellConfig as cell
 
@@ -19,30 +18,20 @@ val appName = "honey-mouth"
 val appVersion = "0.1.0-SNAPSHOT"
 
 object Config {
-  val staging = configs(
-    "staging",
+  val staging =
     config("conf1",
       listOf(
         cell("", "ip4", "publicIp1", emptyList()),
         cell("", "ip3", "ip2", emptyList())
       )
-    ),
-    config("conf2",
-      listOf(
-        cell("", "ip4", "publicIp2", emptyList()),
-        cell("", "ip3", "ip2", emptyList())
-      )
-    )
   )
 
-  val dev = configs(
-    "dev",
+  val dev =
     config("dev",
       listOf(
         cell("", "192.168.31.182", "publicIp1", emptyList())
       )
     )
-  )
 
   val prod = staging.copy(name = "prod")
 }
@@ -51,7 +40,7 @@ object Config {
 // In this script
 // And pack it into the installation
 
-build<HiveConfigs> {
+build<HiveConfig> {
   require {
     "java" version "^9.0" via JavaVersion.parser
 //    "badger-vcs" version "^0.0.3"
