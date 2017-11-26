@@ -27,7 +27,6 @@ public class JavaArtifactResolver implements MavenMetadataResolver{
         throw new RuntimeException("couldn't resolve " + art);
       }
 
-
       map.put(art, r.jarFile);
     }
 
@@ -58,9 +57,10 @@ public class JavaArtifactResolver implements MavenMetadataResolver{
       File jarFile = new File(cacheFolder, file + ".jar");
       File sha1File = new File(cacheFolder, file + ".jar.sha1");
 
+
       if(forceUpdate) {
         try {
-          String sha1 = StupidJavaMethods.downloadAsString(url + ".jar.sha1");
+          String sha1 = repo.downloadSha1(url);
           StupidJavaMethods.writeFile(sha1File, sha1);
         } catch (Exception e) {
           continue;
@@ -76,48 +76,62 @@ public class JavaArtifactResolver implements MavenMetadataResolver{
       String sha1;
 
       try {
-        StupidJavaMethods.downloadJavaWay(url + ".jar.sha1", sha1File);
-
-        String line = StupidJavaMethods.readFile(sha1File.toPath()).trim();
-        int indexOfSpace = line.indexOf(" ");
-
-        sha1 = indexOfSpace == -1 ? line : line.substring(0, indexOfSpace);
+        sha1 = repo.downloadSha1(url);
       } catch (Exception e) {
         sha1 = null;
       }
 
-      if (sha1 == null) {
-        sha1File.delete();
-      } else {
-        try {
-          System.out.printf("GET %s.jar... ", url);
+      if(sha1 == null) continue;
 
-          StupidJavaMethods.downloadJavaWay(url + ".jar", jarFile);
+      try {
+        StupidJavaMethods.writeFile(sha1File, sha1);
 
-          String actualSha1 = StupidJavaMethods.getSha1(jarFile.toPath());
+        System.out.printf("GET %s.jar... ", url);
 
-          if (!Objects.equals(sha1, actualSha1)) {
-            System.out.println("downloaded a file, and sha1 didn't match: " + actualSha1 + " (actual) vs " + sha1 + " (expected)");
-            return null;
-          }
+        repo.downloadJar(url, jarFile);
 
-          System.out.println("ok");
+        String actualSha1 = StupidJavaMethods.getSha1(jarFile.toPath());
 
-          return result;
-        } catch (Exception e) {
-          throw new RuntimeException("can't download url " + url + ".jar for artifact " + art);
+        if (!Objects.equals(sha1, actualSha1)) {
+          System.out.println("downloaded a file, and sha1 didn't match: " + actualSha1 + " (actual) vs " + sha1 + " (expected)");
+          //sha1 file can be corrupt (404)
+          continue;
         }
+
+        System.out.println("ok");
+
+        return result;
+      } catch (Exception e) {
+        throw new RuntimeException("can't download url " + url + ".jar for artifact " + art);
       }
     }
 
     return null;
   }
 
+  public static String extractSha1(String line) {
+    line = line.trim();
+
+    int indexOfSpace = line.indexOf(" ");
+
+    String sha1 = indexOfSpace == -1 ? line : line.substring(0, indexOfSpace);
+
+    validateSha1(sha1);
+
+    return sha1;
+  }
+
+
+  private static void validateSha1(String sha1) {
+    if(sha1.length() > 100 || sha1.length() < 16 ||
+      !sha1.matches("^[0-9a-f]{16,100}$")) throw new RuntimeException("something is not ok about sha1");
+  }
+
   private static ResolveResult isCached(File sha1File, File jarFile, String file, ResolveResult result) {
     ResolveResult cached;
 
     if (sha1File.exists() && jarFile.exists()) {
-      String sha1 = StupidJavaMethods.readFile(sha1File.toPath());
+      String sha1 = extractSha1(StupidJavaMethods.readFile(sha1File.toPath()));
       String actualSha1 = StupidJavaMethods.getSha1(jarFile.toPath());
 
       if (!sha1.equals(actualSha1)) {

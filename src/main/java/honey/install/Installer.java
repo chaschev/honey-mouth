@@ -8,10 +8,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 // ok todo MavenMetadata, MavenMetadataParser, MavenMetadataResolver (I)
 // ok todo download the latest/specified version honey:badger:[version-optional]
@@ -23,7 +25,9 @@ public class Installer {
 
   public static final String MY_JAR = "build/libs/honey-mouth-0.1.0-SNAPSHOT.jar";
 
-  private File miniRepoDir = new File("mini-repo");
+  private File miniRepoDir() {
+    return new File(getInstallationDir(),"mini-repo");
+  }
 
   private File myJar;
 
@@ -72,7 +76,7 @@ public class Installer {
       art = art + ":" + metadata.release;
     }
 
-    return resolver.resolve(art, miniRepoDir);
+    return resolver.resolve(art, miniRepoDir());
   }
 
   public static void main(String[] args) throws Exception {
@@ -102,32 +106,9 @@ public class Installer {
 
     // then, resolve all dependencies
 
-    final Map<String, File> resolvedDeps = resolveAll(false);
+    final File libDir = new File(getInstallationDir(), "lib");
 
-    String installationPath;
-
-    {
-      String temp = System.getenv("INSTALLATION_PATH");
-
-      if(temp == null) temp = ".";
-
-      installationPath = temp;
-    }
-
-    File installationDir = new File(installationPath);
-    File libDir = new File(installationDir, "lib");
-
-    libDir.mkdirs();
-
-    // copy all dependencies into the lib dir
-
-    for (File file : libDir.listFiles()) {
-      file.delete();
-    }
-
-    for (File file : resolvedDeps.values()) {
-      Files.copy(file.toPath(), new File(libDir, file.getName()).toPath());
-    }
+    resolveDepsToLibFolder(libDir);
 
     final String classpath =  libDir.getAbsolutePath()+"/*";
 
@@ -159,15 +140,44 @@ public class Installer {
     }
   }
 
+  public void resolveDepsToLibFolder(File libDir) throws IOException {
+    final Map<String, File> resolvedDeps = resolveAll(false);
+
+    libDir.mkdirs();
+
+    // copy all dependencies into the lib dir
+
+    for (File file : libDir.listFiles()) {
+      file.delete();
+    }
+
+    for (File file : resolvedDeps.values()) {
+      Files.copy(file.toPath(), new File(libDir, file.getName()).toPath());
+    }
+  }
+
+  private static File getInstallationDir() {
+    String installationPath;
+
+    {
+      String temp = System.getenv("INSTALLATION_PATH");
+
+      if(temp == null) temp = ".";
+
+      installationPath = temp;
+    }
+
+    return new File(installationPath);
+  }
+
 
   /**
    * @param forceUpdate is a little slower, but more precise. It will update sha1 for downloaded files.
    */
   public Map<String, File> resolveAll(boolean forceUpdate) {return _install(forceUpdate);}
 
-
   private Map<String, File> _install(boolean forceUpdate) {
-    miniRepoDir.mkdirs();
+    miniRepoDir().mkdirs();
 
 //    May be next time will have his complexity
 //    System.out.println("downloading runtime libraries...");
@@ -182,12 +192,15 @@ public class Installer {
     final List<String> depStrings = getDeps().getDependencies(true);
     final List<MavenRepo> repoList = getDeps().getRepos(true);
 
-    System.out.println("resolving " + depStrings.size() + " artifacts in " + repoList.size() +
-      " repositories...");
+    System.out.println("resolving " + depStrings.size() + " artifacts in " +
+      repoList.size() +
+      " repositories:\n " + String.join("\n", repoList.stream().map(MavenRepo::root).collect(Collectors.toList())
+      ) +
+      "...");
 
     return new JavaArtifactResolver(repoList)
       .setForceUpdate(forceUpdate)
-      .resolveAll(miniRepoDir, depStrings);
+      .resolveAll(miniRepoDir(), depStrings);
   }
 
   public synchronized ModuleDependencies getDeps() {
@@ -198,13 +211,6 @@ public class Installer {
       deps = new ModuleDependencies(myJar);
     }
     return deps;
-  }
-
-
-  @NotNull
-  public Installer setMiniRepoDir(File dir) {
-    miniRepoDir = dir;
-    return this;
   }
 
   public String getVersion() {return getDeps().me.split(":")[2];}

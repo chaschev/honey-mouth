@@ -62,20 +62,19 @@ Don't need a tool like npm, there is Gradle. Though Gradle doesn't provide API f
 */
 
 
-class AppInstaller<T : AppConfig>(
-  val configClass: Class<T>,
-  val dsl: InstallDSLBuilder<T>,
-  internal val installOptions: HoneyMouthOptions<T>
+open class AppInstaller<T : AppConfig>(
+  open val dsl: InstallDSLBuilder<T>,
+  open val options: HoneyMouthOptions<T>
 ) {
 
   init {
-    installOptions.installer = this
+    println("app installOptions = ${options}")
   }
 
   fun run(args: Array<String>): Int {
     val parser = ArgParser(args, helpFormatter = helpFormatter)
 
-    return HoneyMouthArgs(parser, configClass).run()
+    return HoneyMouthArgs(parser, options.configClass).run()
   }
 
   /**
@@ -86,7 +85,11 @@ class AppInstaller<T : AppConfig>(
    *
    * Run the release script.
    */
-  fun install(options: HoneyMouthOptions<T>): Int {
+  fun install(): Int {
+    println("app installOptions = ${options}")
+
+    options.installer = this
+
     dsl.requiredVersions?.verify()
 
     dsl.before?.invoke()
@@ -96,8 +99,13 @@ class AppInstaller<T : AppConfig>(
     runBlocking {
       val libDir = File(options.installationPath, "lib")
 
-      // move all dependencies into the lib dir
+      // create/update temp lib dir which is left after Installer (java)
+      // these libs are also our runtime
+      Installer()
+        .setMyJar(options.myJar)
+        .resolveDepsToLibFolder(libDir)
 
+      // move all dependencies into the lib dir
       val libs = libDir.listFiles()
 
       println("moving ${libs?.size ?: 0} libs..")
@@ -155,12 +163,11 @@ class AppInstaller<T : AppConfig>(
 
     @JvmStatic
     fun main(args: Array<String>) {
-      val options = HoneyMouthOptions<HiveConfig>(InstallMode.update, false)
+      val options = HoneyMouthOptions(HiveConfig::class.java, InstallMode.update, false)
 
       val r = AppInstaller(
-        configClass = HiveConfig::class.java,
         dsl = AppInstaller.dsl(HiveConfig::class.java, options, "dev"),
-        installOptions = options
+        options = options
       ).run(args)
 
       System.exit(r)
@@ -168,7 +175,7 @@ class AppInstaller<T : AppConfig>(
 
     fun <T : AppConfig> dsl(
       aClass: Class<T>,
-      options: HoneyMouthOptions<T> = HoneyMouthOptions(),
+      options: HoneyMouthOptions<T> = HoneyMouthOptions(aClass),
       environment: String = "auto"): InstallDSLBuilder<T> {
 
       return dslMap.getOrPut(aClass, {

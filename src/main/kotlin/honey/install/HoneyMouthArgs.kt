@@ -4,13 +4,13 @@ import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 import honey.config.AppConfig
 import honey.config.dsl.UpdateScriptDSLBuilder
-import java.io.File
 
 enum class InstallMode {
   install, update, noInstall
 }
 
 data class HoneyMouthOptions<T : AppConfig>(
+  val configClass: Class<T>,
   val installMode: InstallMode = InstallMode.noInstall,
   val updateJars: Boolean = false,
   val installationPath: String = ".",
@@ -21,10 +21,13 @@ data class HoneyMouthOptions<T : AppConfig>(
 
   val oldVersion by lazy { installer.getInstalledVersion() }
   val newVersion by lazy { javaInstaller!!.version }
+
+  val myJar by lazy {StupidJavaResources.getMyJar(configClass, devJarPath)}
+
+  fun isFirstInstallation() = oldVersion == null
 }
 
-internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resourcesClass: Class<T>) {
-
+internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configClass: Class<T>) {
   val force by parser.flagging("--force",
     help = "force download JARs").default(false)
 
@@ -90,13 +93,14 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
     }
 
     val options = HoneyMouthOptions<T>(
+      configClass,
       mode,
       updateLibs || (force && mode == InstallMode.update),
       System.getenv(UpdateScriptDSLBuilder.INSTALLATION_PATH) ?: ".",
       javaInstaller
     )
 
-    val installer = AppInstaller(resourcesClass, AppInstaller.dsl(resourcesClass, options, environment),  options)
+    val installer = AppInstaller(AppInstaller.dsl(configClass, options, environment),  options)
 
     // here, newVersion requires to determine our jar
 
@@ -123,20 +127,18 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
 
       if(installVersion == "jar"){
         javaInstaller
-          .setMyJar(StupidJavaResources.getMyJar(resourcesClass, Installer.MY_JAR))
-          .setMiniRepoDir(File(options.installationPath))
+          .setMyJar(StupidJavaResources.getMyJar(configClass, Installer.MY_JAR))
           .resolveAll(options.updateJars)
 
       }else {
         javaInstaller
-          .setMiniRepoDir(File(options.installationPath))
           .downloadAndInstall(downloadArt, repo, options.updateJars)
       }
 
       return 0
     }
 
-    return installer.install(options)
+    return installer.install()
 
 //    if (initialInstall) {
 //      if(mode == InstallMode.update) throw IllegalStateException("how come?")
@@ -164,7 +166,7 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val resource
     val art: String
     val repo: String
 
-    val moduleDependencies = ModuleDependencies(StupidJavaResources.getMyJar(resourcesClass, Installer.MY_JAR))
+    val moduleDependencies = ModuleDependencies(StupidJavaResources.getMyJar(configClass, Installer.MY_JAR))
 
     art = if (artifact == "auto") {
       moduleDependencies.me.substringBeforeLast(':')

@@ -4,6 +4,10 @@ import honey.config.AppConfig
 import honey.config.StoredConfig
 import honey.install.HoneyMouthOptions
 
+/**
+ * TODO SEPARATE BUILD RESULT FROM THE BUILDER
+ * TODO or it just looks ugly in client's config
+ */
 class InstallDSLBuilder<C : AppConfig>(val environment: String = "auto") {
 
   lateinit var installOptions: HoneyMouthOptions<C>

@@ -1,13 +1,17 @@
 package honey.maven;
 
+import org.apache.http.HttpConnection;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.Base64;
 import java.util.Formatter;
 
 public class StupidJavaMethods {
@@ -54,27 +58,21 @@ public class StupidJavaMethods {
   }
 
   public static void downloadJavaWay(String url, File dest) {
-    try(OutputStream os = new FileOutputStream(dest)) {
+    try (OutputStream os = new FileOutputStream(dest)) {
       downloadJavaWay(url, os);
-    } catch (Exception e){
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
   }
 
-  public static String downloadAsString(String url) {
-    try(ByteArrayOutputStream os = new ByteArrayOutputStream(8 * 1024)) {
-      downloadJavaWay(url, os);
-      return os.toString();
-    } catch (Exception e){
-      throw new RuntimeException(e);
-    }
-  }
+
 
   public static void downloadJavaWay(String url, OutputStream os) {
     URL webUrl;
 
     //ok java
     try {
+      System.out.println("trying " + url);
       webUrl = new URL(url);
     } catch (MalformedURLException e) {
       throw new RuntimeException(e);
@@ -87,9 +85,64 @@ public class StupidJavaMethods {
     } catch (IOException e) {
       message = "error: " + e.toString();
 
+      System.out.println(message);
+
       throw new RuntimeException(e);
     } finally {
-//      System.out.println(message);
+      System.out.println(message);
+    }
+  }
+
+  public static String downloadAsString(String url, String[] auth, String requestMethod) {
+    try (ByteArrayOutputStream os = new ByteArrayOutputStream(8 * 1024)) {
+      downloadWithAuth(url, auth, os, requestMethod);
+      return os.toString();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static String downloadAsString(String url) {
+    try (ByteArrayOutputStream os = new ByteArrayOutputStream(8 * 1024)) {
+      downloadJavaWay(url, os);
+      return os.toString();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void downloadFileWithAuth(
+    String url,
+    String[] auth,
+    File dest,
+    String requestMethod
+  ) {
+    try (OutputStream os = new FileOutputStream(dest)) {
+      downloadWithAuth(url, auth, os, requestMethod);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static void downloadWithAuth(
+    String urlString,
+    String[] auth,
+    OutputStream os,
+    String requestMethod
+  ) {
+    try {
+      URL url = new URL(urlString);
+      String encoding = Base64.getEncoder().encodeToString((auth[0] + ":" + auth[1]).getBytes());
+
+      HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+      connection.setRequestMethod(requestMethod);
+      connection.setDoOutput(true);
+      connection.setRequestProperty("Authorization", "Basic " + encoding);
+      try (InputStream is = connection.getInputStream()) {
+        copyStream(is, os);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
     }
   }
 
