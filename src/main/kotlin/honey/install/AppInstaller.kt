@@ -13,7 +13,6 @@ import java.nio.file.Files
 import java.util.concurrent.ConcurrentHashMap
 import javax.script.ScriptEngineManager
 
-
 /*
 
 User extends Installer Class
@@ -112,8 +111,6 @@ open class AppInstaller<T : AppConfig>(
 
       require(libs?.isNotEmpty() == true, { "$libDir/ folder must not be empty! Make sure you ran installer before or use --update-libs flat" })
 
-      dsl.folders.lib.file.listFiles().forEach { it.delete() }
-
       if (libDir.canonicalPath != dsl.folders.lib.file.canonicalPath) {
         for (file in libs!!) {
           Files.move(file.toPath(), File(dsl.folders.lib.path, file.name).toPath())
@@ -174,6 +171,14 @@ open class AppInstaller<T : AppConfig>(
     }
 
     fun <T : AppConfig> dsl(
+      options: HoneyMouthOptions<T>,
+      environment: String = "auto"
+    ): InstallDSLBuilder<T> {
+      return dsl(options.configClass, options, environment)
+    }
+
+
+    internal fun <T : AppConfig> dsl(
       aClass: Class<T>,
       options: HoneyMouthOptions<T>,
       environment: String = "auto"): InstallDSLBuilder<T> {

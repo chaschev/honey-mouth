@@ -72,7 +72,7 @@ public class StupidJavaMethods {
 
     //ok java
     try {
-      System.out.println("trying " + url);
+//      System.out.println("trying " + url);
       webUrl = new URL(url);
     } catch (MalformedURLException e) {
       throw new RuntimeException(e);
@@ -83,7 +83,7 @@ public class StupidJavaMethods {
     try (InputStream is = webUrl.openStream()) {
       copyStream(is, os);
     } catch (IOException e) {
-      message = "error: " + e.toString();
+//      message = "error: " + e.toString();
 
       System.out.println(message);
 
@@ -131,6 +131,8 @@ public class StupidJavaMethods {
     String requestMethod
   ) {
     try {
+      System.out.println("POST " + urlString);
+
       URL url = new URL(urlString);
       String encoding = Base64.getEncoder().encodeToString((auth[0] + ":" + auth[1]).getBytes());
 
