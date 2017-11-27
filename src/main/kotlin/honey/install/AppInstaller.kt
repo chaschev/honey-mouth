@@ -69,6 +69,8 @@ open class AppInstaller<T : AppConfig>(
 
   init {
     println("app installOptions = ${options}")
+    options.installer = this
+
   }
 
   fun run(args: Array<String>): Int {
@@ -87,8 +89,6 @@ open class AppInstaller<T : AppConfig>(
    */
   fun install(): Int {
     println("app installOptions = ${options}")
-
-    options.installer = this
 
     dsl.requiredVersions?.verify()
 
@@ -119,7 +119,7 @@ open class AppInstaller<T : AppConfig>(
           Files.move(file.toPath(), File(dsl.folders.lib.path, file.name).toPath())
         }
       } else {
-        println("lib dir didn't move")
+        println("lib dir no need move")
       }
 
       dsl.app?.extractResources()
@@ -175,7 +175,7 @@ open class AppInstaller<T : AppConfig>(
 
     fun <T : AppConfig> dsl(
       aClass: Class<T>,
-      options: HoneyMouthOptions<T> = HoneyMouthOptions(aClass),
+      options: HoneyMouthOptions<T>,
       environment: String = "auto"): InstallDSLBuilder<T> {
 
       return dslMap.getOrPut(aClass, {

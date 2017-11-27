@@ -34,9 +34,9 @@ public interface MavenRepo {
     String s;
 
     if(isAuthEnabled()) {
-      s = StupidJavaMethods.downloadAsString(url);
-    } else {
       s = StupidJavaMethods.downloadAsString(url, auth(), "POST");
+    } else {
+      s = StupidJavaMethods.downloadAsString(url);
     }
 
     return extractSha1(s);
@@ -46,9 +46,9 @@ public interface MavenRepo {
     final String url = baseUrl + ".jar";
 
     if(isAuthEnabled()) {
-      downloadJavaWay(url, dest);
-    } else {
       StupidJavaMethods.downloadFileWithAuth(url, auth(), dest, "POST");
+    } else {
+      downloadJavaWay(url, dest);
     }
   }
 }
