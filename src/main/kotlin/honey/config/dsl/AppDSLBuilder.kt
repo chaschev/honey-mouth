@@ -1,12 +1,13 @@
 package honey.config.dsl
 
 import honey.config.AppConfig
+import honey.install.HoneyMouthOptions
 import honey.install.StupidJavaResources
 import org.jetbrains.kotlin.preprocessor.mkdirsOrFail
 import java.io.File
 import java.util.zip.ZipFile
 
-class AppDSLBuilder(val devJarPath: String?) {
+class AppDSLBuilder<C : AppConfig>(val options: HoneyMouthOptions<C>) {
   val resourcesList = ArrayList<Pair<Regex, Folder>>()
 
 
@@ -22,7 +23,7 @@ class AppDSLBuilder(val devJarPath: String?) {
 
   fun extractResources() {
     if (resourcesList.size > 0) {
-      val zipFile = ZipFile(StupidJavaResources.getMyJar(javaClass, devJarPath))
+      val zipFile = ZipFile(options.myJar)
 
       zipFile.entries().asSequence().forEach { entry ->
         if (!entry.isDirectory) {

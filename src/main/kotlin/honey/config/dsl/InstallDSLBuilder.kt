@@ -21,7 +21,7 @@ class InstallDSLBuilder<C : AppConfig>(val environment: String = "auto") {
   internal lateinit var folders: FoldersDSL
   internal var inFolders: ArrayList<InFoldersDSLBuilder> = ArrayList()
 
-  var app: AppDSLBuilder? = null
+  var app: AppDSLBuilder<C>? = null
 
   internal lateinit var config: StoredConfig<C>
 
@@ -74,8 +74,8 @@ class InstallDSLBuilder<C : AppConfig>(val environment: String = "auto") {
 
   fun app() = app!!
 
-  fun app(builder: AppDSLBuilder.() -> Unit) {
-    this.app = AppDSLBuilder(installOptions.devJarPath).apply(builder)
+  fun app(builder: AppDSLBuilder<C>.() -> Unit) {
+    this.app = AppDSLBuilder(installOptions).apply(builder)
   }
 
   fun folders() = folders

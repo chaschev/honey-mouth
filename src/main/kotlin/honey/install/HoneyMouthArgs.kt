@@ -20,14 +20,24 @@ data class HoneyMouthOptions<T : AppConfig>(
   lateinit var installer: AppInstaller<T>
 
   val oldVersion by lazy { installer.getInstalledVersion() }
-  val newVersion by lazy { javaInstaller!!.version }
+  val buildProps by lazy { ModuleDependencies.getBuildProperties(configClass) }
 
-  val myJar by lazy {StupidJavaResources.getMyJar(configClass, devJarPath)}
+  init {
+    if(devJarPath != null && !devJarPath.contains(buildProps.version)) {
+      throw RuntimeException("devJarPath $devJarPath is of the wrong version. Our version is: ${buildProps.version}")
+    }
+  }
+
+  val myJar by lazy {
+    val myJar = StupidJavaResources.getMyJar(configClass, devJarPath)
+    println("using app jar: $myJar")
+    myJar
+  }
 
   fun isFirstInstallation() = oldVersion == null
 }
 
-internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configClass: Class<T>) {
+class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configClass: Class<T>, val devJarPath: String? = null) {
   val force by parser.flagging("--force",
     help = "force download JARs").default(false)
 
@@ -79,28 +89,31 @@ internal class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configCl
 
       val meta = Installer().getMetadata(art, repo)
 
-//      println("found ${meta.versions.size} versions: ")
+      println("found ${meta.versions.size} versions: ")
       println(meta.versions.joinToString("\n") {" $it"})
 
+      System.exit(0)
+    }
+
+    if (version) {
+      println(ModuleDependencies.getBuildProperties(configClass).toString())
       return 0
     }
 
     val javaInstaller = Installer()
-
-    if (version) {
-      println(javaInstaller.version)
-      return 0
-    }
 
     val options = HoneyMouthOptions<T>(
       configClass,
       mode,
       updateLibs || (force && mode == InstallMode.update),
       System.getenv(UpdateScriptDSLBuilder.INSTALLATION_PATH) ?: ".",
-      javaInstaller
+      javaInstaller,
+      devJarPath
     )
 
-    val installer = AppInstaller(AppInstaller.dsl(configClass, options, environment),  options)
+    javaInstaller.setMyJar(options.myJar)
+
+    val installer = AppInstaller(AppInstaller.dsl(options, environment),  options)
 
     // here, newVersion requires to determine our jar
 

@@ -72,12 +72,6 @@ open class AppInstaller<T : AppConfig>(
 
   }
 
-  fun run(args: Array<String>): Int {
-    val parser = ArgParser(args, helpFormatter = helpFormatter)
-
-    return HoneyMouthArgs(parser, options.configClass).run()
-  }
-
   /**
    * At this stage we have all required JARs in our classpath.
    *
@@ -107,14 +101,25 @@ open class AppInstaller<T : AppConfig>(
       // move all dependencies into the lib dir
       val libs = libDir.listFiles()
 
-      println("moving ${libs?.size ?: 0} libs..")
+      println("moving ${libs?.size ?: 0} libs to ${dsl.folders.lib.path}")
 
       require(libs?.isNotEmpty() == true, { "$libDir/ folder must not be empty! Make sure you ran installer before or use --update-libs flat" })
 
+      //empty target dir to avoid version conflicts after updating to new versions
+      //FUCK JAVA BUG
+      // files are deleted if you run this line, the stay if you don't run it
+      // IDEA interference? FUCK HERR
+      dsl.folders.lib.file.listFiles().forEach { it.delete() }
+      dsl.folders.lib.file.delete()
+
       if (libDir.canonicalPath != dsl.folders.lib.file.canonicalPath) {
-        for (file in libs!!) {
-          Files.move(file.toPath(), File(dsl.folders.lib.path, file.name).toPath())
-        }
+        Files.move(libDir.toPath(), dsl.folders.lib.file.toPath())
+//        for (file in libs!!) {
+//          //fuck java move method won't work
+//
+//          Runtime.getRuntime().exec("mv ${file.toPath()} ")
+////          Files.move(file.toPath(), File(dsl.folders.lib.path, file.name).toPath())
+//        }
       } else {
         println("lib dir no need move")
       }
@@ -123,6 +128,8 @@ open class AppInstaller<T : AppConfig>(
 
       dsl.scripts.forEach { item ->
         item.writeScript()
+//        println("starting service...")
+//        Systemd.start(id)
       }
     }
 
@@ -160,12 +167,9 @@ open class AppInstaller<T : AppConfig>(
 
     @JvmStatic
     fun main(args: Array<String>) {
-      val options = HoneyMouthOptions(HiveConfig::class.java, InstallMode.update, false)
+      val parser = ArgParser(args, helpFormatter = helpFormatter)
 
-      val r = AppInstaller(
-        dsl = AppInstaller.dsl(HiveConfig::class.java, options, "dev"),
-        options = options
-      ).run(args)
+      val r = HoneyMouthArgs(parser, HiveConfig::class.java, "build/libs/honey-mouth-0.1.1-SNAPSHOT.jar").run()
 
       System.exit(r)
     }
@@ -176,7 +180,6 @@ open class AppInstaller<T : AppConfig>(
     ): InstallDSLBuilder<T> {
       return dsl(options.configClass, options, environment)
     }
-
 
     internal fun <T : AppConfig> dsl(
       aClass: Class<T>,

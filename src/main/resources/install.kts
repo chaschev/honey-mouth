@@ -7,13 +7,14 @@ import honey.config.dsl.Rights.omit
 import honey.config.dsl.ScriptOption.jvmOpts
 import honey.config.dsl.ScriptOption.memory
 import honey.config.example.HiveConfig
+import honey.install.AppInstaller
 import honey.pack.JavaVersion
 import java.util.*
 import honey.config.example.HiveCellConfig as cell
 import honey.config.example.HiveConfig as config
 
 val appName = "honey-mouth"
-val appVersion = "0.1.0"
+val appVersion = "0.1.2"
 
 object Config {
   val staging = config("conf1",
@@ -48,8 +49,8 @@ val lambda = { environment: String ->
       StoredConfig(
         appName = appName,
         version = appVersion,
-        revision = "69de53",
-        buildTime = Date(1511634752924L),
+        revision = "66d231",
+        buildTime = Date(1511804681433L),
         team = "Andrey Chaschev",
         configs = listOf(Config.dev, Config.staging, Config.prod)
       )
@@ -93,7 +94,7 @@ val lambda = { environment: String ->
     }
 
     inFolder(folders().bin) {
-      updateScript()
+      updateScript(AppInstaller.javaClass.name)
 
       script {
         id = "my-ass"
@@ -127,7 +128,7 @@ val lambda = { environment: String ->
       installOptions
 
       //Active config is determined through the list of hosts
-      config.getActiveConfig()
+      getConfig()
     }
   }
 }

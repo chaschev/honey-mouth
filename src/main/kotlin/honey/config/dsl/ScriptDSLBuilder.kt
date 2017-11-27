@@ -1,6 +1,5 @@
 package honey.config.dsl
 
-import honey.install.AppInstaller
 import honey.install.UnixStartScript
 import honey.pack.Systemd
 import honey.pack.SystemdInstall
@@ -8,11 +7,11 @@ import java.io.File
 
 class UpdateScriptDSLBuilder(
   override var folderPath: String,
-  override val dsl: InstallDSLBuilder<*>
+  override val dsl: InstallDSLBuilder<*>,
+  override var appClass: String
 ) : ScriptDSLBuilder(folderPath, dsl) {
   init {
     id = "update-${dsl.config.appName}"
-    appClass = AppInstaller.javaClass.name
     env = mapOf(
       INSTALLATION_PATH to File(".").absolutePath
     )
@@ -32,7 +31,7 @@ open class ScriptDSLBuilder(
 
   lateinit var id: String
 //  var name : String = id ?: null
-  lateinit var appClass: String
+  open lateinit var appClass: String
 
   var args: String? = null
   var env: Map<String, String> = emptyMap()
@@ -52,17 +51,21 @@ open class ScriptDSLBuilder(
 
   suspend fun writeScript() {
     val scriptFile = file()
+
+    val script = UnixStartScript(
+      dsl.config.appName,
+      "..",  //TODO fix appHomePath from app
+      "APP_OPTS",
+      jvmOpts(),
+      "${dsl.folders.lib.file.absoluteFile.path}/*",
+      "",
+      appClass,
+      env
+    )
     scriptFile.writeText(
-      UnixStartScript(
-        dsl.config.appName,
-        "..",  //TODO fix appHomePath from app
-        "APP_OPTS",
-        jvmOpts(),
-        "${dsl.folders.lib.file.absoluteFile.path}/*",
-        "",
-        appClass,
-        env
-      ).script())
+      script.script())
+
+    println("add script $scriptFile -> $appClass -cp ${script.classpath}")
 
     if(installService) {
       val serviceFile = File("/etc/systemd/system/$id.service")
@@ -73,9 +76,6 @@ open class ScriptDSLBuilder(
         SystemdInstall("$id service",
           exec = scriptFile.absolutePath).write()
       )
-
-      println("starting service...")
-      Systemd.start(id)
     }
 
     Rights.executableAll.apply(scriptFile)

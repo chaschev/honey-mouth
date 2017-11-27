@@ -7,6 +7,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 public class ModuleDependencies {
   public final String me;
@@ -59,5 +60,9 @@ public class ModuleDependencies {
     final ArrayList<String> r = new ArrayList<>(dependencies);
     if(includeMe) r.add(me);
     return r;
+  }
+
+  public static BuildProperties getBuildProperties(Class<?> aClass) {
+    return new BuildProperties(aClass);
   }
 }

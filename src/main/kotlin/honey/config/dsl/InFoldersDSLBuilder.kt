@@ -19,8 +19,8 @@ class InFoldersDSLBuilder(
     return script
   }
 
-  fun updateScript(builder: (UpdateScriptDSLBuilder.() -> Unit)? = null): UpdateScriptDSLBuilder {
-    val temp = UpdateScriptDSLBuilder(folderPath, parent)
+  fun updateScript(appClass: String, builder: (UpdateScriptDSLBuilder.() -> Unit)? = null): UpdateScriptDSLBuilder {
+    val temp = UpdateScriptDSLBuilder(folderPath, parent, appClass)
 
     parent.scripts.add(temp)
 
@@ -62,7 +62,7 @@ class InFoldersDSLBuilder(
     runBlocking {
       println("linking ${parent.script(id)!!.folderPath}/$id from $folderPath/$id")
       "rm $folderPath/$id".exec(1000)
-      "ln -s ${parent.script(id)!!.file().absolutePath} $folderPath/$id".exec(1000, inheritIO = true)
+      "ln -s ${parent.script(id)!!.file().absoluteFile.canonicalPath} $folderPath/$id".exec(1000, inheritIO = true)
     }
   }
 }

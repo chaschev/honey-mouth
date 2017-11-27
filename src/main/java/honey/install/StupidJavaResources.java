@@ -3,8 +3,10 @@ package honey.install;
 import honey.maven.StupidJavaMethods;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -49,6 +51,18 @@ public class StupidJavaResources {
 
       return file;
     } catch (URISyntaxException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static Properties readResourceProperties(Class<?> aClass, String path) {
+    try(InputStream is = aClass.getResourceAsStream(path)) {
+      final Properties props = new Properties();
+
+      props.load(is);
+
+      return props;
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }
