@@ -2,7 +2,9 @@ package honey.config.dsl
 
 import honey.config.AppConfig
 import honey.config.StoredConfig
+import honey.install.BuildProperties
 import honey.install.HoneyMouthOptions
+import honey.install.ModuleDependencies
 
 /**
  * TODO SEPARATE BUILD RESULT FROM THE BUILDER
@@ -117,7 +119,26 @@ class InstallDSLBuilder<C : AppConfig>(val environment: String = "auto") {
   }
 }
 
-interface ReleaseDSL {
-  fun <C : AppConfig> build(environment: String? = "auto") : InstallDSLBuilder<C>
+abstract class ReleaseDSLDef<C : AppConfig>(
+  open val configClass: Class<C>,
+  open val devJar: String? = null
+  ) {
+
+  val buildProps by lazy {
+    ModuleDependencies.getBuildProperties(this.javaClass, devJar)
+  }
+
+
+  abstract fun build(environment: String = "auto") : InstallDSLBuilder<C>
 }
 
+fun <C : AppConfig> BuildProperties.toStoredConfig(team: String, vararg configs: C): StoredConfig<C> {
+  return StoredConfig(
+    appName = name,
+    version = version,
+    revision = revision,
+    buildTime = buildTime,
+    team = team,
+    configs = configs.toList()
+  )
+}

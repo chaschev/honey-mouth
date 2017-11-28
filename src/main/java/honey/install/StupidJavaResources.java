@@ -5,6 +5,8 @@ import honey.maven.StupidJavaMethods;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Properties;
 import java.util.zip.ZipEntry;
@@ -12,14 +14,15 @@ import java.util.zip.ZipFile;
 
 public class StupidJavaResources {
   public static String getText(File jar, String path) {
-    if(path.startsWith("/")) path = path.substring(1);
+    if (path.startsWith("/")) path = path.substring(1);
 
-    try(ZipFile zip = new ZipFile(jar)) {
+    try (ZipFile zip = new ZipFile(jar)) {
       final ZipEntry entry = zip.getEntry(path);
-      if(entry == null) {
+      if (entry == null) {
         throw new RuntimeException("coudn't find " + path + " in " + jar);
       }
-      try(InputStream is = zip.getInputStream(entry)){
+      final InputStream stream = zip.getInputStream(entry);
+      try (InputStream is = stream) {
         return StupidJavaMethods.streamToString(is);
       }
     } catch (Exception e) {
@@ -31,7 +34,7 @@ public class StupidJavaResources {
     try {
       final InputStream stream = aClass.getResourceAsStream(resourcePath);
 
-      if(stream == null) return null;
+      if (stream == null) return null;
 
       return StupidJavaMethods.streamToString(stream);
     } catch (Exception e) {
@@ -43,10 +46,16 @@ public class StupidJavaResources {
     try {
       File file = new File(aClass.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
 
-      if(file.isDirectory()) {
+      if (file.isDirectory()) {
+        final RuntimeException exception = new RuntimeException("can't find my jar. you need to specify fallback jar for dev purposes");
+
+        if(fallbackJarPath == null) throw exception;
+
         file = new File(fallbackJarPath);
 
-        if(!file.exists() || file.isDirectory() || !file.getName().endsWith(".jar")) throw new RuntimeException("can't find my jar. you need to specify fallback jar for dev purposes");
+        if (!file.exists() || file.isDirectory() || !file.getName().endsWith(".jar")) {
+          throw exception;
+        }
       }
 
       return file;
@@ -55,15 +64,17 @@ public class StupidJavaResources {
     }
   }
 
-  public static Properties readResourceProperties(Class<?> aClass, String path) {
-    try(InputStream is = aClass.getResourceAsStream(path)) {
-      final Properties props = new Properties();
+  public static Properties readResourceProperties(Class<?> aClass, String path, String fallbackJarPath) {
+    final File myJar = getMyJar(aClass, fallbackJarPath);
 
-      props.load(is);
+    final Properties props = new Properties();
 
-      return props;
+    try {
+      props.load(new StringReader(getText(myJar, path)));
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+
+    return props;
   }
 }

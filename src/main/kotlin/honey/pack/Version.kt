@@ -14,11 +14,13 @@ interface Version : Comparable<Version> {
         val ZERO = parse("0")
         val MAX = parse("9999")
 
-        fun parse(s: String): Version =
-          SimpleVersion(s.split(REGEX) as List<Comparable<Any>>)
-//          .map {
-//              (it.toIntOrNull() ?: it) as Comparable<Any>
-//          })
+        fun parse(s: String, positions: Int = 0): Version {
+            val nums = s.split(REGEX)
+
+            if(positions != 0) require(nums.size == positions, {"version $s must have $positions"})
+
+            return SimpleVersion(nums as List<Comparable<Any>>)
+        }
     }
 
 

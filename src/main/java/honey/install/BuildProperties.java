@@ -1,7 +1,6 @@
 package honey.install;
 
-import java.util.Date;
-import java.util.Properties;
+import java.util.*;
 
 public class BuildProperties {
   public final String artifact;
@@ -10,16 +9,29 @@ public class BuildProperties {
   public final String revision;
   public final Date buildTime;
   public final String timestamp;
+  public final Map<String, String> ext;
 
-  public BuildProperties(Class<?> aClass) {
-    final Properties properties = StupidJavaResources.readResourceProperties(aClass, "/build.properties");
+  public BuildProperties(Class<?> aClass, String fallbackJarPath) {
+    final Properties properties = StupidJavaResources.readResourceProperties(aClass, "/build.properties", fallbackJarPath);
 
-     artifact = properties.getProperty("artifact");
-     name = properties.getProperty("name");
-     version = properties.getProperty("version");
-     revision = properties.getProperty("revision");
-     buildTime = new Date(Long.parseLong(properties.getProperty("buildTimeMillis")));
-     timestamp = properties.getProperty("timestamp");
+    artifact = properties.getProperty("artifact");
+    name = properties.getProperty("name");
+    version = properties.getProperty("version");
+    revision = properties.getProperty("revision");
+    buildTime = new Date(Long.parseLong(properties.getProperty("buildTimeMillis")));
+    timestamp = properties.getProperty("timestamp");
+
+    final Map<String, String> temp = new HashMap<>();
+
+    properties.forEach((k, v) -> {
+      String key = k.toString();
+
+      if (key.startsWith("ext.")) {
+        temp.put(key.substring("ext.".length()), v.toString());
+      }
+    });
+
+    ext = Collections.unmodifiableMap(temp);
   }
 
   @Override

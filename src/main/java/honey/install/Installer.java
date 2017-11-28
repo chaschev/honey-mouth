@@ -88,7 +88,8 @@ public class Installer {
     if(args.length == 0) {
       System.out.println("getting the artifact from jar");
       ModuleDependencies deps = new ModuleDependencies(
-      StupidJavaResources.getMyJar(this.getClass(), MY_JAR));
+        StupidJavaResources.getMyJar(this.getClass(), MY_JAR)
+      );
 
       art = deps.me;
       repo = deps.myRepo.root();
@@ -107,6 +108,17 @@ public class Installer {
 
     resolveDepsToLibFolder(libDir);
 
+    // manually patch jars if needed. I.e. there is a shit problem with
+    // Kotlin compiler which was lazy to shade Guava libs
+
+    BuildProperties buildProps = ModuleDependencies.getBuildProperties(this.getClass(), MY_JAR);
+
+    Runnable preinstall = (Runnable)Class.forName(buildProps.ext.get("honeyMouth.preinstallClass")).newInstance();
+
+    preinstall.run();
+
+    // next, build classpath and start Kotlin-based install
+
     final String classpath =  libDir.getAbsolutePath()+"/*";
 
     System.out.println("Using classpath: " + classpath);
@@ -115,7 +127,7 @@ public class Installer {
       "java",
       "-cp",
       classpath,
-      "honey.install.AppInstaller"
+      buildProps.ext.get("honeyMouth.installClass")
     };
 
     Process java = new ProcessBuilder(command)

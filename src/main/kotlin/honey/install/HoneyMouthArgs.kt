@@ -3,6 +3,7 @@ package honey.install
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 import honey.config.AppConfig
+import honey.config.dsl.ReleaseDSLDef
 import honey.config.dsl.UpdateScriptDSLBuilder
 
 enum class InstallMode {
@@ -10,7 +11,7 @@ enum class InstallMode {
 }
 
 data class HoneyMouthOptions<T : AppConfig>(
-  val configClass: Class<T>,
+  val releaseDSLDef: ReleaseDSLDef<T>,
   val installMode: InstallMode = InstallMode.noInstall,
   val updateJars: Boolean = false,
   val installationPath: String = ".",
@@ -18,9 +19,10 @@ data class HoneyMouthOptions<T : AppConfig>(
   val devJarPath: String? = null
 ) {
   lateinit var installer: AppInstaller<T>
+  val configClass = releaseDSLDef.configClass
 
   val oldVersion by lazy { installer.getInstalledVersion() }
-  val buildProps by lazy { ModuleDependencies.getBuildProperties(configClass) }
+  val buildProps by lazy { ModuleDependencies.getBuildProperties(configClass, devJarPath) }
 
   init {
     if(devJarPath != null && !devJarPath.contains(buildProps.version)) {
@@ -95,15 +97,27 @@ class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configClass: Clas
       System.exit(0)
     }
 
+    val buildProps = ModuleDependencies.getBuildProperties(configClass, devJarPath)
+
     if (version) {
-      println(ModuleDependencies.getBuildProperties(configClass).toString())
+      println(buildProps.toString())
       return 0
     }
 
+    // TODO this can be simplified: InstallClass is aware of the DSL it is using
+    // TODO before there was a dynamic *.kts install script, so things were trickier
+    // TODO now we can instantiate this class and simply run the installation
+    // TODO probably whole implementation shit should be rewritten
+
+    val releaseDslDef = Class.forName(buildProps.ext["honeyMouth.dslDefClass"])
+      .constructors
+      .find { it.parameterTypes contentEquals arrayOf(String::class.java) }
+    ?.newInstance(devJarPath) as ReleaseDSLDef<T>
+
     val javaInstaller = Installer()
 
-    val options = HoneyMouthOptions<T>(
-      configClass,
+    val options = HoneyMouthOptions(
+      releaseDslDef,
       mode,
       updateLibs || (force && mode == InstallMode.update),
       System.getenv(UpdateScriptDSLBuilder.INSTALLATION_PATH) ?: ".",
@@ -113,7 +127,7 @@ class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configClass: Clas
 
     javaInstaller.setMyJar(options.myJar)
 
-    val installer = AppInstaller(AppInstaller.dsl(options, environment),  options)
+    val installer = AppInstaller(AppInstaller.dsl(releaseDslDef, options, environment),  options)
 
     // here, newVersion requires to determine our jar
 
@@ -143,7 +157,7 @@ class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configClass: Clas
           .setMyJar(StupidJavaResources.getMyJar(configClass, Installer.MY_JAR))
           .resolveAll(options.updateJars)
 
-      }else {
+      } else {
         javaInstaller
           .downloadAndInstall(downloadArt, repo, options.updateJars)
       }

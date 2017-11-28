@@ -62,7 +62,7 @@ public class ModuleDependencies {
     return r;
   }
 
-  public static BuildProperties getBuildProperties(Class<?> aClass) {
-    return new BuildProperties(aClass);
+  public static BuildProperties getBuildProperties(Class<?> aClass, String fallbackJarPath) {
+    return new BuildProperties(aClass, fallbackJarPath);
   }
 }

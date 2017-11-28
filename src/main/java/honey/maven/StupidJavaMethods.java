@@ -65,8 +65,6 @@ public class StupidJavaMethods {
     }
   }
 
-
-
   public static void downloadJavaWay(String url, OutputStream os) {
     URL webUrl;
 
@@ -85,11 +83,11 @@ public class StupidJavaMethods {
     } catch (IOException e) {
 //      message = "error: " + e.toString();
 
-      System.out.println(message);
+//      System.out.println(message);
 
       throw new RuntimeException(e);
     } finally {
-      System.out.println(message);
+//      System.out.println(message);
     }
   }
 

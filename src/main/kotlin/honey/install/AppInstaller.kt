@@ -4,6 +4,7 @@ import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.DefaultHelpFormatter
 import honey.config.AppConfig
 import honey.config.dsl.InstallDSLBuilder
+import honey.config.dsl.ReleaseDSLDef
 import honey.config.dsl.UpdateScriptDSLBuilder
 import honey.config.example.HiveConfig
 import honey.pack.Version
@@ -149,8 +150,10 @@ open class AppInstaller<T : AppConfig>(
     val updateScript = dsl.scripts.firstOrNull { it is UpdateScriptDSLBuilder } ?: return null
 
     return runBlocking {
+      val versionOutput = "${updateScript.id} --version".exec(2000).toString()
+
       Version.parse(
-        "${updateScript.id} --version".exec(2000).toString()
+        versionOutput.substringAfter(' ').substringBefore(' ')
       )
     }
   }
@@ -175,19 +178,13 @@ open class AppInstaller<T : AppConfig>(
     }
 
     fun <T : AppConfig> dsl(
-      options: HoneyMouthOptions<T>,
-      environment: String = "auto"
-    ): InstallDSLBuilder<T> {
-      return dsl(options.configClass, options, environment)
-    }
-
-    internal fun <T : AppConfig> dsl(
-      aClass: Class<T>,
+      releaseDSLDef: ReleaseDSLDef<T>,
       options: HoneyMouthOptions<T>,
       environment: String = "auto"): InstallDSLBuilder<T> {
 
-      return dslMap.getOrPut(aClass, {
-        val installScript = StupidJavaResources.readResource(this::class.java, "/install.kts")
+      return dslMap.getOrPut(releaseDSLDef.javaClass, {
+        releaseDSLDef.build(environment).useOptions(options).build()
+       /* val installScript = StupidJavaResources.readResource(this::class.java, "/install.kts")
 
         println("wait a sec. evaluating install script, it is a little slow today...")
 
@@ -199,7 +196,7 @@ open class AppInstaller<T : AppConfig>(
 
         dsl.useOptions(options)
 
-        dsl
+        dsl*/
       }) as InstallDSLBuilder<T>
     }
   }
