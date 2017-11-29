@@ -1,6 +1,6 @@
 buildscript {
   ext.versions = [
-    'kotlin'    : '1.2.0-rc-84',
+    'kotlin'    : '1.2.0',
     'coroutines': '0.19.3',
   ]
 
@@ -20,7 +20,7 @@ buildscript {
   dependencies {
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
     classpath "net.researchgate:gradle-release:2.7.5"
-    classpath "honey:kgit:0.1.8"
+    classpath "honey:kgit:0.1.9"
   }
 
   repositories {
