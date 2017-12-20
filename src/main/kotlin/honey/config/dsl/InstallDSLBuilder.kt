@@ -1,6 +1,7 @@
 package honey.config.dsl
 
 import honey.config.AppConfig
+import honey.config.HostConfig
 import honey.config.StoredConfig
 import honey.install.BuildProperties
 import honey.install.HoneyMouthOptions
@@ -106,8 +107,12 @@ class InstallDSLBuilder<C : AppConfig>(val environment: String = "auto") {
     return this
   }
 
-  fun getConfig(): C {
+  fun getActiveConfig(): C {
     return config.getActiveConfig()
+  }
+
+  fun <H: HostConfig> getActiveHostConfig(): H {
+    return config.getActiveHost()
   }
 
   companion object {

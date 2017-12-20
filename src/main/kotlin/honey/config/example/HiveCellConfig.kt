@@ -3,6 +3,7 @@ package honey.config.example
 
 import com.fasterxml.jackson.annotation.JsonBackReference
 import com.fasterxml.jackson.annotation.JsonRootName
+import honey.config.HostConfig
 
 @JsonRootName("hiveCell")
 data class HiveCellConfig(
@@ -12,7 +13,11 @@ data class HiveCellConfig(
   val publicIp: String?,
   val labels: List<String>,
   var workload: Int = 100
-) {
+) : HostConfig {
+  override fun getIps(): List<String> {
+    return listOfNotNull(ip, publicIp)
+  }
+
   var parent: HiveConfig? = null
 
   override fun toString(): String {

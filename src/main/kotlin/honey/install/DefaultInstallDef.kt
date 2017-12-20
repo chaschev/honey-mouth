@@ -90,7 +90,7 @@ class DefaultInstallDef(
         installOptions
 
         //Active config is determined through the list of hosts
-        getConfig()
+        getActiveConfig()
       }
     }
   }

@@ -16,7 +16,7 @@ data class HoneyMouthOptions<T : AppConfig>(
   val updateJars: Boolean = false,
   val installationPath: String = ".",
   internal val javaInstaller: Installer? = null,
-  val devJarPath: String? = null
+  val devJarPath: String? = releaseDSLDef.devJar
 ) {
   lateinit var installer: AppInstaller<T>
   val configClass = releaseDSLDef.configClass
@@ -127,7 +127,7 @@ class HoneyMouthArgs<T : AppConfig>(val parser: ArgParser, val configClass: Clas
 
     javaInstaller.setMyJar(options.myJar)
 
-    val installer = AppInstaller(AppInstaller.dsl(releaseDslDef, options, environment),  options)
+    val installer = AppInstaller(AppInstaller.dsl(options, environment),  options)
 
     // here, newVersion requires to determine our jar
 

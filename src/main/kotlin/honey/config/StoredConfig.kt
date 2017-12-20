@@ -16,38 +16,51 @@ data class StoredConfig<T : AppConfig>(
 
   private lateinit var activeConfig: T
 
-  fun getActiveConfig(): T = activeConfig
+  // some configs don't use hosts configurations, this field will be null
+  private var activeHost: HostConfig? = null
 
-  fun getMyConfigFromHosts(): T? {
+  fun getActiveConfig(): T = activeConfig
+  fun <H: HostConfig> getActiveHost(): H = activeHost as H
+
+  fun getMyConfigFromHosts(): Pair<T, HostConfig>? {
     val myIps = getMyAddresses()
 
     logger.debug {"my ips: $myIps"}
 
-    return configs.find { config ->
-      (null != if (config !is Hosts) {
-        null
-      } else {
-        val hosts = config.getAllHosts()
+    var host: HostConfig? = null
 
-        myIps.find {
-          val r = hosts.contains(it)
-          if(r) logger.debug { "matched ip: $it" }
-          r
+    return configs.find { config ->
+      if (config !is Hosts) {
+        false
+      } else {
+        val hosts = config.getHosts()
+
+        val searchedHost = hosts.find { host ->
+          val found = myIps.find { myIp ->
+            host.getIps().contains(myIp)
+          }
+
+          found != null
         }
-      })
-    }
+
+        if(searchedHost != null) host = searchedHost
+
+        searchedHost != null
+      }
+    }?.to(host!!)
   }
 
   fun setActiveConfig(fromEnvironment: String) {
-    val config = (if(fromEnvironment != "auto") {
-      configs.find { it.name == fromEnvironment }
+    val (config, hostConfig) = (if(fromEnvironment != "auto") {
+      configs.find { it.name == fromEnvironment }?.to(null)
     } else {
       getMyConfigFromHosts()
     }) ?: throw Exception("couldn't determine active config from hosts or environment is not set")
 
 
-    println("using config: ${config.name}")
+    println("using config: ${config.name}, host: $hostConfig")
     activeConfig = config
+    activeHost = hostConfig
   }
 
   companion object : KLogging() {

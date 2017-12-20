@@ -4,7 +4,6 @@ import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.DefaultHelpFormatter
 import honey.config.AppConfig
 import honey.config.dsl.InstallDSLBuilder
-import honey.config.dsl.ReleaseDSLDef
 import honey.config.dsl.UpdateScriptDSLBuilder
 import honey.config.example.HiveConfig
 import honey.pack.Version
@@ -40,8 +39,6 @@ KGit application
     task write /jars
     task update appName, appVersion, revision
 
-
-
   App Jar will hold information about runnable configurations in Kotlin DSL
   Installer will run this DSL and generate all required scripts
 
@@ -70,7 +67,6 @@ open class AppInstaller<T : AppConfig>(
   init {
     println("app installOptions = ${options}")
     options.installer = this
-
   }
 
   /**
@@ -178,25 +174,26 @@ open class AppInstaller<T : AppConfig>(
     }
 
     fun <T : AppConfig> dsl(
-      releaseDSLDef: ReleaseDSLDef<T>,
       options: HoneyMouthOptions<T>,
       environment: String = "auto"): InstallDSLBuilder<T> {
 
+      val releaseDSLDef = options.releaseDSLDef
+
       return dslMap.getOrPut(releaseDSLDef.javaClass, {
         releaseDSLDef.build(environment).useOptions(options).build()
-       /* val installScript = StupidJavaResources.readResource(this::class.java, "/install.kts")
+        /* val installScript = StupidJavaResources.readResource(this::class.java, "/install.kts")
 
-        println("wait a sec. evaluating install script, it is a little slow today...")
+         println("wait a sec. evaluating install script, it is a little slow today...")
 
-        val dslLambda = kotlinEngine.eval(installScript) as ((env:String) -> InstallDSLBuilder<T>)
+         val dslLambda = kotlinEngine.eval(installScript) as ((env:String) -> InstallDSLBuilder<T>)
 
-        val dsl = dslLambda(environment)
+         val dsl = dslLambda(environment)
 
-        println("using config: " + dsl.config)
+         println("using config: " + dsl.config)
 
-        dsl.useOptions(options)
+         dsl.useOptions(options)
 
-        dsl*/
+         dsl*/
       }) as InstallDSLBuilder<T>
     }
   }
